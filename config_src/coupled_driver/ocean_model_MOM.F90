@@ -71,6 +71,7 @@ use MOM_generic_tracer, only : MOM_generic_tracer_fluxes_accumulate
 implicit none ; private
 
 public ocean_model_init, ocean_model_end, update_ocean_model
+public get_ocean_grid ! add by Jiande
 public ocean_model_save_restart, Ocean_stock_pe
 public ice_ocean_boundary_type
 public ocean_model_init_sfc, ocean_model_flux_init
@@ -134,7 +135,7 @@ end type ocean_public_type
 !> The ocean_state_type contains all information about the state of the ocean,
 !! with a format that is private so it can be readily changed without disrupting
 !! other coupled components.
-type, public :: ocean_state_type ; private
+type, public :: ocean_state_type ! JW: remove private so that CAP can write out  intermediate restart; private                                                                 
   ! This type is private, and can therefore vary between different ocean models.
   logical :: is_ocean_PE = .false.  !< True if this is an ocean PE.
   type(time_type) :: Time     !< The ocean model's time and master clock.
@@ -1038,6 +1039,26 @@ subroutine ocean_model_data2D_get(OS, Ocean, name, array2D, isc, jsc)
      array2D(isc:,jsc:) = Ocean%t_surf(isc:,jsc:)-CELSIUS_KELVIN_OFFSET
   case('btfHeat')
      array2D(isc:,jsc:) = 0
+  case('tlat')
+     array2D(isc:,jsc:) = OS%grid%geoLatT(g_isc:g_iec,g_jsc:g_jec)
+  case('tlon')
+     array2D(isc:,jsc:) = OS%grid%geoLonT(g_isc:g_iec,g_jsc:g_jec)
+  case('ulat')
+     array2D(isc:,jsc:) = OS%grid%geoLatCu(g_isc:g_iec,g_jsc:g_jec)
+  case('ulon')
+     array2D(isc:,jsc:) = OS%grid%geoLonCu(g_isc:g_iec,g_jsc:g_jec)
+  case('vlat')
+     array2D(isc:,jsc:) = OS%grid%geoLatCv(g_isc:g_iec,g_jsc:g_jec)
+  case('vlon')
+     array2D(isc:,jsc:) = OS%grid%geoLonCv(g_isc:g_iec,g_jsc:g_jec)
+  case('geoLatBu')
+     array2D(isc:,jsc:) = OS%grid%geoLatBu(g_isc:g_iec,g_jsc:g_jec)
+  case('geoLonBu')
+     array2D(isc:,jsc:) = OS%grid%geoLonBu(g_isc:g_iec,g_jsc:g_jec)
+  case('cos_rot')
+     array2D(isc:,jsc:) = OS%grid%cos_rot(g_isc:g_iec,g_jsc:g_jec) ! =1
+  case('sin_rot')
+     array2D(isc:,jsc:) = OS%grid%sin_rot(g_isc:g_iec,g_jsc:g_jec) ! =0
   case default
      call MOM_error(FATAL,'get_ocean_grid_data2D: unknown argument name='//name)
   end select
@@ -1088,5 +1109,22 @@ subroutine ocean_public_type_chksum(id, timestep, ocn)
 100 FORMAT("   CHECKSUM::",A20," = ",Z20)
 
 end subroutine ocean_public_type_chksum
+
+!#######################################################################
+! <SUBROUTINE NAME="get_ocean_grid">
+!
+! <DESCRIPTION>
+! Obtain the ocean grid.
+! </DESCRIPTION>
+!
+  subroutine get_ocean_grid(OS, Gridp)
+    type(ocean_state_type) :: OS
+    type(ocean_grid_type) , pointer          :: Gridp
+
+    Gridp => OS%grid
+    return
+
+  end subroutine get_ocean_grid
+! </SUBROUTINE> NAME="get_ocean_grid"
 
 end module ocean_model_mod

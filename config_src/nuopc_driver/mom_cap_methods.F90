@@ -15,8 +15,10 @@ module mom_cap_methods
   private
 
   ! Public member functions
+#ifdef CESMCOUPLED
   public :: mom_export
   public :: mom_import
+#endif
   public :: mom_import_nems
 
   integer            :: rc,dbrc
@@ -27,6 +29,7 @@ module mom_cap_methods
 contains
 !-----------------------------------------------------------------------
 
+#ifdef CESMCOUPLED
   !> Maps outgoing ocean data to ESMF State
   !! See \ref section_mom_export for a summary of the data
   !! that is transferred from MOM6 to MCT.
@@ -468,7 +471,7 @@ contains
     end if
 
   end subroutine mom_import
-
+#endif
   !-----------------------------------------------------------------------------
 
   subroutine mom_import_nems(ocean_public, grid, importState, ice_ocean_boundary, rc)

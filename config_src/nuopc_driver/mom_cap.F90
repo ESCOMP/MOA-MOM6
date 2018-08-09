@@ -11,27 +11,27 @@
 !!
 !! **This MOM cap has been tested with MOM5 and MOM6.**
 !!
-!! This document describes the MOM "cap", which is a small software layer that is 
-!! required when the [MOM ocean model] (http://mom-ocean.org/web) 
-!! is used in [National Unified Operation Prediction Capability] 
+!! This document describes the MOM "cap", which is a small software layer that is
+!! required when the [MOM ocean model] (http://mom-ocean.org/web)
+!! is used in [National Unified Operation Prediction Capability]
 !! (http://www.earthsystemcog.org/projects/nuopc) (NUOPC) coupled systems.
-!! The NUOPC Layer is a software layer built on top of the [Earth System Modeling 
-!! Framework] (https://www.earthsystemcog.org/projects/esmf) (ESMF). 
+!! The NUOPC Layer is a software layer built on top of the [Earth System Modeling
+!! Framework] (https://www.earthsystemcog.org/projects/esmf) (ESMF).
 !! ESMF is a high-performance modeling framework that provides
 !! data structures, interfaces, and operations suited for building coupled models
 !! from a set of components. NUOPC refines the capabilities of ESMF by providing
-!! a more precise definition of what it means for a model to be a component and 
+!! a more precise definition of what it means for a model to be a component and
 !! how components should interact and share data in a coupled system. The NUOPC
 !! Layer software is designed to work with typical high-performance models in the
-!! Earth sciences domain, most of which are written in Fortran and are based on a 
-!! distributed memory model of parallelism (MPI). 
-!! A NUOPC "cap" is a Fortran module that serves as the interface to a model 
-!! when it's used in a NUOPC-based coupled system. 
-!! The term "cap" is used because it is a small software layer that sits on top 
-!! of model code, making calls into it and exposing model data structures in a 
+!! Earth sciences domain, most of which are written in Fortran and are based on a
+!! distributed memory model of parallelism (MPI).
+!! A NUOPC "cap" is a Fortran module that serves as the interface to a model
+!! when it's used in a NUOPC-based coupled system.
+!! The term "cap" is used because it is a small software layer that sits on top
+!! of model code, making calls into it and exposing model data structures in a
 !! standard way. For more information about creating NUOPC caps in general, please
-!! see the [Building a NUOPC Model] 
-!! (http://www.earthsystemmodeling.org/esmf_releases/non_public/ESMF_7_0_0/NUOPC_howtodoc/) 
+!! see the [Building a NUOPC Model]
+!! (http://www.earthsystemmodeling.org/esmf_releases/non_public/ESMF_7_0_0/NUOPC_howtodoc/)
 !! how-to document.
 !!
 !! The MOM cap package includes the cap itself (mom_cap.F90, a Fortran module), a
@@ -65,7 +65,7 @@
 !!
 !! Two key initialization phases that appear in every NUOPC cap, including this MOM
 !! cap are the field "advertise" and field "realize" phases.  *Advertise* is a special
-!! NUOPC term that refers to a model participating in a coupled system 
+!! NUOPC term that refers to a model participating in a coupled system
 !! providing a list of standard names of required import fields and available export
 !! fields.  In other words, each model will advertise to the other models which physical fields
 !! it needs and which fields it can provide when coupled. NUOPC compares all of the advertised
@@ -79,13 +79,13 @@
 !! type, which describes logically rectangular grids and the [ESMF_Field]
 !! (http://www.earthsystemmodeling.org/esmf_releases/public/last/ESMF_refdoc/node5.html#SECTION05030000000000000000)
 !! type, which wraps a models data arrays and provides basic metadata. Because ESMF supports
-!! interpolation between different grids (sometimes called "regridding" or "grid remapping"), 
+!! interpolation between different grids (sometimes called "regridding" or "grid remapping"),
 !! it is not necessary that models share a grid.  As you will see below
 !! the *advertise* and *realize* phases each have a subroutine in the HYCOM cap.
-!! 
+!!
 !! The following table summarizes the NUOPC-required subroutines that appear in the
 !! MOM cap.  The "Phase" column says whether the subroutine is called during the
-!! initialization, run, or finalize part of the coupled system run. 
+!! initialization, run, or finalize part of the coupled system run.
 !!
 !! Phase    | MOM Cap Subroutine                                                 |  Description
 !! ---------|--------------------------------------------------------------------|-------------------------------------------------------------
@@ -122,7 +122,7 @@
 !!  - an `ESMF_Grid` is then created by passing in the above `ESMF_DistGrid`.
 !!
 !! Masks, areas, center (tlat, tlon), and corner (ulat, ulon) coordinates are then added to the `ESMF_Grid`
-!! by retrieving those fields from MOM with calls to `ocean_model_data_get()`. 
+!! by retrieving those fields from MOM with calls to `ocean_model_data_get()`.
 !!
 !! @subsection Initialization Initialization
 !!
@@ -132,7 +132,7 @@
 !! is pulled in through the ESMF VM object for the MOM component. The dt and start time are set
 !! from parameters from the incoming ESMF clock with calls to `set_time()` and `set_date().`
 !!
-!! 
+!!
 !! @subsection Run Run
 !!
 !! The [ModelAdvance] (@ref mom_cap_mod::modeladvance) subroutine is called by the NUOPC
@@ -216,7 +216,7 @@
 !!
 !! The following tables list the import and export fields currently set up in the MOM cap.
 !!
-!! @subsection ImportFields Import Fields 
+!! @subsection ImportFields Import Fields
 !!
 !! Standard Name                     | Units      | Model Variable  | Description                                   | Notes
 !! ----------------------------------|------------|-----------------|-----------------------------------------------|--------------------------------------
@@ -260,7 +260,7 @@
 !! The MOM cap has an internal state type with pointers to three
 !! types defined by MOM. There is also a small wrapper derived type
 !! required to associate an internal state instance
-!! with the ESMF/NUOPC component: 
+!! with the ESMF/NUOPC component:
 !!
 !!     type ocean_internalstate_type
 !!        type(ocean_public_type),       pointer :: ocean_public_type_ptr
@@ -299,7 +299,7 @@
 !! (@ref mom_cap_mod::dumpmominternal) to write out model internal fields to files
 !! named "field_ocn_internal_<fieldname>.nc".  In all cases these NetCDF files will
 !! contain a time series of field data.
-!! 
+!!
 !! @section BuildingAndInstalling Building and Installing
 !!
 !! There are two makefiles included with the MOM cap, makefile and makefile.nuopc.
@@ -320,7 +320,7 @@
 !!
 !! The MOM cap is dependent on the MOM library itself (lib_ocean.a) and the FMS
 !! library (lib_FMS.a).
-!! 
+!!
 !! @section RuntimeConfiguration Runtime Configuration
 !!
 !! At runtime, the MOM cap can be configured with several options provided
@@ -341,14 +341,14 @@
 !! * `GridAttachArea` - when set to "true", this option indicates that MOM grid attaches cell area
 !!   using internal values computed in MOM. The default value is "false", grid cell area will
 !!   be computed in ESMF.
-!! 
-!! 
+!!
+!!
 !! @section Repository
 !! The MOM NUOPC cap is maintained in a GitHub repository:
 !! https://github.com/feiliuesmf/nems_mom_cap
 !!
-!! @section References 
-!! 
+!! @section References
+!!
 !! - [MOM Home Page] (http://mom-ocean.org/web)
 !!
 !!
@@ -449,7 +449,7 @@ module mom_cap_mod
   !! in the module with the NUOPC layer.
   !!
   !! @param gcomp an ESMF_GridComp object
-  !! @param rc return code  
+  !! @param rc return code
   subroutine SetServices(gcomp, rc)
 
     type(ESMF_GridComp)  :: gcomp
@@ -457,14 +457,14 @@ module mom_cap_mod
     character(len=*),parameter  :: subname='(mom_cap:SetServices)'
 
     rc = ESMF_SUCCESS
-    
+
     ! the NUOPC model component will register the generic methods
     call NUOPC_CompDerive(gcomp, model_routine_SS, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     ! switching to IPD versions
     call ESMF_GridCompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
       userRoutine=InitializeP0, phase=0, rc=rc)
@@ -486,7 +486,7 @@ module mom_cap_mod
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     ! attach specializing method(s)
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Advance, &
       specRoutine=ModelAdvance, rc=rc)
@@ -521,7 +521,7 @@ module mom_cap_mod
     type(ESMF_State)      :: importState, exportState
     type(ESMF_Clock)      :: clock
     integer, intent(out)  :: rc
-    
+
     character(len=10)                         :: value
 
     rc = ESMF_SUCCESS
@@ -540,7 +540,7 @@ module mom_cap_mod
       file=__FILE__)) &
       return  ! bail out
     write_diagnostics=(trim(value)=="true")
-    call ESMF_LogWrite('MOM_CAP:DumpFields = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite('MOM_CAP:DumpFields = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     call ESMF_AttributeGet(gcomp, name="ProfileMemory", value=value, defaultValue="true", &
       convention="NUOPC", purpose="Instance", rc=rc)
@@ -549,7 +549,7 @@ module mom_cap_mod
       file=__FILE__)) &
       return  ! bail out
     profile_memory=(trim(value)/="false")
-    call ESMF_LogWrite('MOM_CAP:ProfileMemory = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite('MOM_CAP:ProfileMemory = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     call ESMF_AttributeGet(gcomp, name="OceanSolo", value=value, defaultValue="false", &
       convention="NUOPC", purpose="Instance", rc=rc)
@@ -558,7 +558,7 @@ module mom_cap_mod
       file=__FILE__)) &
       return  ! bail out
     ocean_solo=(trim(value)=="true")
-    call ESMF_LogWrite('MOM_CAP:OceanSolo = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite('MOM_CAP:OceanSolo = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     ! Retrieve restart_interval in (seconds)
     ! A restart_interval value of 0 means no restart will be written.
@@ -581,7 +581,7 @@ module mom_cap_mod
         file=__FILE__, rcToReturn=rc)
       return
     endif
-    call ESMF_LogWrite('MOM_CAP:restart_interval = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite('MOM_CAP:restart_interval = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     call ESMF_AttributeGet(gcomp, name="GridAttachArea", value=value, defaultValue="false", &
       convention="NUOPC", purpose="Instance", rc=rc)
@@ -590,10 +590,10 @@ module mom_cap_mod
       file=__FILE__)) &
       return  ! bail out
     grid_attach_area=(trim(value)=="true")
-    call ESMF_LogWrite('MOM_CAP:GridAttachArea = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)  
-    
+    call ESMF_LogWrite('MOM_CAP:GridAttachArea = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
+
   end subroutine
-  
+
   !-----------------------------------------------------------------------------
 
   !> Called by NUOPC to advertise import and export fields.  "Advertise"
@@ -616,14 +616,14 @@ module mom_cap_mod
     type(ESMF_VM)                          :: vm
     type(ESMF_Time)                        :: MyTime
     type(ESMF_TimeInterval)                :: TINT
-    
+
     type (ocean_public_type),      pointer :: Ocean_sfc   => NULL()
     type (ocean_state_type),       pointer :: Ocean_state => NULL()
     type(ice_ocean_boundary_type), pointer :: Ice_ocean_boundary => NULL()
     type(ocean_internalstate_wrapper)      :: ocean_internalstate
 
-    type(time_type)                        :: Run_len      ! length of experiment 
-    type(time_type)                        :: Time        
+    type(time_type)                        :: Run_len      ! length of experiment
+    type(time_type)                        :: Time
     type(time_type)                        :: Time_restart
     type(time_type)                        :: DT
     integer                                :: DT_OCEAN
@@ -688,7 +688,7 @@ module mom_cap_mod
     call diag_manager_init
     ! this ocean connector will be driven at set interval
     dt_cpld = DT_OCEAN
-    DT = set_time (DT_OCEAN, 0)         
+    DT = set_time (DT_OCEAN, 0)
     Time = set_date (YEAR,MONTH,DAY,HOUR,MINUTE,SECOND)
 
     Ocean_sfc%is_ocean_pe = .true.
@@ -758,7 +758,7 @@ module mom_cap_mod
 
 #ifdef MOM6_CAP
     ! When running mom6 solo, the rotation angles are not computed internally
-    ! in MOM6. We need to 
+    ! in MOM6. We need to
     ! calculate cos and sin of rotational angle for MOM6; the values
     ! are stored in ocean_internalstate%ptr%ocean_grid_ptr%cos_rot and sin_rot
     ! The rotation angles are retrieved during run time to rotate incoming
@@ -771,7 +771,7 @@ module mom_cap_mod
     write(*,*) '----- MOM initialization phase Advertise completed'
 
   end subroutine InitializeAdvertise
-  
+
   !-----------------------------------------------------------------------------
 
   !> Called by NUOPC to realize import and export fields.  "Realizing" a field
@@ -823,7 +823,7 @@ module mom_cap_mod
     real(ESMF_KIND_R8), pointer            :: dataPtr_ycor(:,:)
     type(ESMF_Field)                       :: field_t_surf
     character(len=*),parameter  :: subname='(mom_cap:InitializeRealize)'
-    
+
     rc = ESMF_SUCCESS
 
     call ESMF_GridCompGetInternalState(gcomp, ocean_internalstate, rc)
@@ -854,7 +854,7 @@ module mom_cap_mod
 
     call mpp_get_global_domain(Ocean_sfc%domain, xsize=nxg, ysize=nyg)
     write(tmpstr,'(a,2i6)') subname//' nxg,nyg = ',nxg,nyg
-    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
 
     !---------------------------------
     ! number of tiles per PET, assumed to be 1, and number of pes (tiles) total
@@ -863,7 +863,7 @@ module mom_cap_mod
     ntiles=mpp_get_ntile_count(Ocean_sfc%domain) ! this is tiles on this pe
     if (ntiles /= 1) then
       rc = ESMF_FAILURE
-      call ESMF_LogWrite(subname//' ntiles must be 1', ESMF_LOGMSG_ERROR, rc=dbrc)  
+      call ESMF_LogWrite(subname//' ntiles must be 1', ESMF_LOGMSG_ERROR, rc=dbrc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
@@ -871,7 +871,7 @@ module mom_cap_mod
     endif
     ntiles=mpp_get_domain_npes(Ocean_sfc%domain)
     write(tmpstr,'(a,1i6)') subname//' ntiles = ',ntiles
-    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)  
+    call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
 
     !---------------------------------
     ! get start and end indices of each tile and their PET
@@ -882,7 +882,7 @@ module mom_cap_mod
     call mpp_get_pelist(Ocean_sfc%domain, pe)
     do n = 1,ntiles
       write(tmpstr,'(a,6i6)') subname//' tiles ',n,pe(n),xb(n),xe(n),yb(n),ye(n)
-      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)  
+      call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
     enddo
 
     !---------------------------------
@@ -914,7 +914,7 @@ module mom_cap_mod
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     allocate(connectionList(2))
     ! bipolar boundary condition at top row: nyg
     call ESMF_DistGridConnectionSet(connectionList(1), tileIndexA=1, &
@@ -1196,7 +1196,7 @@ module mom_cap_mod
 #endif
 
 #ifdef MOM6_CAP
-     call ocean_model_data_get(Ocean_state, Ocean_sfc, 'geoLatBu', ofld, isc, jsc)     
+     call ocean_model_data_get(Ocean_state, Ocean_sfc, 'geoLatBu', ofld, isc, jsc)
 #endif
 
     write(tmpstr,*) subname//' ofld yu = ',minval(ofld),maxval(ofld)
@@ -1268,7 +1268,7 @@ module mom_cap_mod
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     ! Do sst initialization if it's part of export state
     if(icount /= 0) then
       call ESMF_StateGet(exportState, itemName='sea_surface_temperature', field=field_t_surf, rc=rc)
@@ -1301,7 +1301,7 @@ module mom_cap_mod
     endif
 
     call NUOPC_Write(exportState, fileNamePrefix='init_field_ocn_export_', &
-      timeslice=1, relaxedFlag=.true., rc=rc) 
+      timeslice=1, relaxedFlag=.true., rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -1310,15 +1310,15 @@ module mom_cap_mod
     write(*,*) '----- MOM initialization phase Realize completed'
 
   end subroutine InitializeRealize
-  
+
   !> Called by NUOPC to advance the model a single timestep.
-  !!  
+  !!
   !! @param gcomp an ESMF_GridComp object
   !! @param rc return code
   subroutine ModelAdvance(gcomp, rc)
     type(ESMF_GridComp)                    :: gcomp
     integer, intent(out)                   :: rc
-    
+
     ! local variables
     type(ESMF_Clock)                       :: clock
     type(ESMF_State)                       :: importState, exportState
@@ -1334,8 +1334,8 @@ module mom_cap_mod
     type(ice_ocean_boundary_type), pointer :: Ice_ocean_boundary => NULL()
     type(ocean_internalstate_wrapper)      :: ocean_internalstate
 
-    ! define some time types 
-    type(time_type)                        :: Time        
+    ! define some time types
+    type(time_type)                        :: Time
     type(time_type)                        :: Time_step_coupled
     type(time_type)                        :: Time_restart_current
 
@@ -1349,7 +1349,7 @@ module mom_cap_mod
     real(ESMF_KIND_R8), pointer :: dataPtr_mmmf(:,:)
     real(ESMF_KIND_R8), pointer :: dataPtr_mzmf(:,:)
     real(ESMF_KIND_R8), pointer :: dataPtr_ocz(:,:)
-    real(ESMF_KIND_R8), pointer :: dataPtr_ocm(:,:) 
+    real(ESMF_KIND_R8), pointer :: dataPtr_ocm(:,:)
     real(ESMF_KIND_R8), pointer :: dataPtr_frazil(:,:)
     real(ESMF_KIND_R8), pointer :: dataPtr_evap(:,:)
     real(ESMF_KIND_R8), pointer :: dataPtr_sensi(:,:)
@@ -1359,7 +1359,7 @@ module mom_cap_mod
 
     rc = ESMF_SUCCESS
     if(profile_memory) call ESMF_VMLogMemInfo("Entering MOM Model_ADVANCE: ")
-    
+
     ! query the Component for its clock, importState and exportState
     call ESMF_GridCompGet(gcomp, clock=clock, importState=importState, &
       exportState=exportState, rc=rc)
@@ -1379,7 +1379,7 @@ module mom_cap_mod
     Ocean_state        => ocean_internalstate%ptr%ocean_state_type_ptr
 
     ! HERE THE MODEL ADVANCES: currTime -> currTime + timeStep
-    
+
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing OCN from: ", unit=msgString, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1391,14 +1391,14 @@ module mom_cap_mod
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     call ESMF_ClockGet(clock, startTime=startTime, currTime=currTime, &
       timeStep=timeStep, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
     call ESMF_TimePrint(currTime + timeStep, &
       preString="--------------------------------> to: ", &
       unit=msgString, rc=rc)
@@ -1428,7 +1428,7 @@ module mom_cap_mod
 
     if(write_diagnostics) then
       call NUOPC_Write(importState, fileNamePrefix='field_ocn_import_', &
-        timeslice=import_slice, relaxedFlag=.true., rc=rc) 
+        timeslice=import_slice, relaxedFlag=.true., rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
@@ -1519,10 +1519,10 @@ module mom_cap_mod
 #endif
 #ifdef MOM6_CAP
 ! Note in order to write out intermediate restart file, private for "ocean_state_type" has been removed
-! Note for MOM6 version earlier than 20180228, use "Ocean_state%MOM_CSp%restart_CSp"                         
+! Note for MOM6 version earlier than 20180228, use "Ocean_state%MOM_CSp%restart_CSp"
           call save_restart('./RESTART/', Ocean_state%Time, Ocean_state%grid, &
                Ocean_state%restart_CSp, .false., &
-               filename=timestamp(1:8)//timestamp(10:13)//'_MOM.res.nc', GV=Ocean_state%GV)                   
+               filename=timestamp(1:8)//timestamp(10:13)//'_MOM.res.nc', GV=Ocean_state%GV)
 #endif
       endif
     endif
@@ -1584,7 +1584,7 @@ module mom_cap_mod
     call ESMF_LogWrite("Before writing diagnostics", ESMF_LOGMSG_INFO, rc=rc)
     if(write_diagnostics) then
       call NUOPC_Write(exportState, fileNamePrefix='field_ocn_export_', &
-        timeslice=export_slice, relaxedFlag=.true., rc=rc) 
+        timeslice=export_slice, relaxedFlag=.true., rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
@@ -1637,12 +1637,12 @@ module mom_cap_mod
     ! input arguments
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
-    
+
     ! local variables
-    type (ocean_public_type),      pointer :: Ocean_sfc          
+    type (ocean_public_type),      pointer :: Ocean_sfc
     type (ocean_state_type),       pointer :: Ocean_state
     type(ocean_internalstate_wrapper)      :: ocean_internalstate
-    type(TIME_TYPE)                        :: Time        
+    type(TIME_TYPE)                        :: Time
     type(ESMF_Clock)                       :: clock
     type(ESMF_Time)                        :: currTime
     character(len=64)                      :: timestamp
@@ -1685,7 +1685,7 @@ module mom_cap_mod
   end subroutine ocean_model_finalize
 
 !====================================================================
-! get forcing data from data_overide 
+! get forcing data from data_overide
   subroutine ice_ocn_bnd_from_data(x, Time, Time_step_coupled)
 
       type (ice_ocean_boundary_type) :: x
@@ -1711,12 +1711,12 @@ module mom_cap_mod
       !call data_override('OCN', 'runoff',          x%runoff         , Time_next)
       !call data_override('OCN', 'calving',         x%calving        , Time_next)
       !call data_override('OCN', 'p',               x%p              , Time_next)
-            
+
   end subroutine ice_ocn_bnd_from_data
 
 
 !-----------------------------------------------------------------------------------------
-! 
+!
 ! Subroutines  for enabling coupling to external programs through a third party coupler
 ! such as OASIS/PRISM.
 ! If no external coupler then these will mostly be dummy routines.
@@ -1794,7 +1794,7 @@ module mom_cap_mod
       character(len=*),parameter :: subname='(mom_cap:writeSliceFields)'
 
       if (present(rc)) rc = ESMF_SUCCESS
-      
+
       if (ESMF_IO_PIO_PRESENT .and. &
         (ESMF_IO_NETCDF_PRESENT .or. ESMF_IO_PNETCDF_PRESENT)) then
 
@@ -1916,7 +1916,7 @@ module mom_cap_mod
     integer                                     :: npet, nx, ny, pet, elb(2), eub(2), clb(2), cub(2), tlb(2), tub(2)
     type(ESMF_VM)                               :: vm
     character(len=*),parameter  :: subname='(mom_cap:MOM_RealizeFields)'
- 
+
     rc = ESMF_SUCCESS
 
     do i = 1, nfields
@@ -2103,7 +2103,7 @@ module mom_cap_mod
     f2d(:,:) = farray(:,:)
 
     call ESMF_FieldWrite(field, fileName='field_ocn_internal_'//trim(stdname)//'.nc', &
-      timeslice=slice, rc=rc) 
+      timeslice=slice, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -2114,7 +2114,7 @@ module mom_cap_mod
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    
+
   end subroutine
 
 #ifdef MOM6_CAP

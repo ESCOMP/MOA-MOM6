@@ -411,9 +411,9 @@ module mom_cap_mod
   use NUOPC                     ! TODO: only: ...
   use NUOPC_Model, &            ! TODO: only: ...
     model_routine_SS           => SetServices, &
-    model_label_DataInitialize => label_DataInitialize, &
     model_label_Advance        => label_Advance, &
 #ifdef CESMCOUPLED
+    model_label_DataInitialize => label_DataInitialize, &
     model_label_SetRunClock    => label_SetRunClock, &
 #endif
     model_label_Finalize       => label_Finalize
@@ -520,12 +520,14 @@ contains
     ! attach specializing method(s)
     !------------------
 
+#ifdef CESMCOUPLED
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_DataInitialize, &
       specRoutine=DataInitialize, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+#endif
 
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Advance, &
       specRoutine=ModelAdvance, rc=rc)
@@ -1672,6 +1674,7 @@ contains
 
   !===============================================================================
 
+#ifdef CESMCOUPLED
   subroutine DataInitialize(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -1763,6 +1766,7 @@ contains
     endif
 
   end subroutine DataInitialize
+#endif
 
   !===============================================================================
 
@@ -2119,52 +2123,6 @@ contains
     enddo
     deallocate(ocz, ocm)
 
-    !call ESMF_LogWrite("B4 writing diags", dataPtr_model_data_get(ocean_state, ocean_public, 'mask', ofld, isc, jsc))
-    do j = lbnd2, ubnd2
-    do i = lbnd1, ubnd1
-      j1 = j - lbnd2 + jsc
-      i1 = i - lbnd1 + isc
-      dataPtr_mask(i,j) = nint(ofld(i1,j1))
-    enddo
-    enddo
-    deallocate(ofld)
-
-    ! Now rotate ocn current from tripolar grid back to lat/lon grid (CCW)
-    allocate(ocz(lbnd1:ubnd1,lbnd2:ubnd2))
-    allocate(ocm(lbnd1:ubnd1,lbnd2:ubnd2))
-
-    call State_getFldPtr(exportState,'ocn_current_zonal',dataPtr_ocz,rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call State_getFldPtr(exportState,'ocn_current_merid',dataPtr_ocm,rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    call State_getFldPtr(exportState,'freezing_melting_potential',dataPtr_frazil,rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    dataPtr_frazil = dataPtr_frazil/dt_cpld !convert from J/m^2 to W/m^2 for CICE coupling
-
-    ocz = dataPtr_ocz
-    ocm = dataPtr_ocm
-    do j  = lbnd2, ubnd2
-      do i = lbnd1, ubnd1
-        j1 = j - lbnd2 + jsc  ! work around local vs global indexing
-        i1 = i - lbnd1 + isc
-        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
-                         - ocean_grid%sin_rot(i1,j1)*ocm(i,j)
-        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
-                         + ocean_grid%sin_rot(i1,j1)*ocz(i,j)
-      enddo
-    enddo
-    deallocate(ocz, ocm)
-
 #endif
 
     if (write_diagnostics) then
@@ -2188,6 +2146,7 @@ contains
 
   !===============================================================================
 
+#ifdef CESMCOUPLED
   subroutine ModelSetRunClock(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -2324,6 +2283,7 @@ contains
       return  ! bail out
 
   end subroutine ModelSetRunClock
+#endif
 
   !===============================================================================
 
@@ -2638,6 +2598,7 @@ contains
 
       if (NUOPC_IsConnected(state, fieldName=field_defs(i)%shortname)) then
 
+#ifdef CESMCOUPLED
         if (field_defs(i)%shortname == flds_scalar_name) then
           call ESMF_LogWrite(subname // tag // " Field "// trim(field_defs(i)%stdname) // " is connected on root pe.", &
             ESMF_LOGMSG_INFO, &
@@ -2650,6 +2611,9 @@ contains
             file=__FILE__)) &
             return  ! bail out
         elseif (field_defs(i)%assoc) then
+#else
+        if (field_defs(i)%assoc) then   
+#endif
           call ESMF_LogWrite(subname // tag // " Field "// trim(field_defs(i)%stdname)&
             // " is connected and associated.", &
             ESMF_LOGMSG_INFO, &
@@ -2714,6 +2678,7 @@ contains
 
   !-----------------------------------------------------------------------------
 
+#ifdef CESMCOUPLED
   subroutine SetScalarField(field, rc)
     ! ----------------------------------------------
     ! create a field with scalar data on the root pe
@@ -2743,7 +2708,7 @@ contains
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) return
 
   end subroutine SetScalarField
-
+#endif
   !-----------------------------------------------------------------------------
 
   subroutine fld_list_add(num, fldlist, stdname, transferOffer, data, shortname)

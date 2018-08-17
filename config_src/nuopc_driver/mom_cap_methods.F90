@@ -3,7 +3,7 @@ module mom_cap_methods
   use ESMF,                only: ESMF_time, ESMF_ClockGet, ESMF_TimeGet, ESMF_State, ESMF_Clock
   use ESMF,                only: ESMF_KIND_R8, ESMF_Field, ESMF_SUCCESS, ESMF_LogFoundError
   use ESMF,                only: ESMF_LOGERR_PASSTHRU, ESMF_StateGet, ESMF_FieldGet
-  use ESMF,                only: ESMF_LogSetError, ESMF_RC_MEM_ALLOCATE 
+  use ESMF,                only: ESMF_LogSetError, ESMF_RC_MEM_ALLOCATE
   use MOM_ocean_model,     only: ocean_public_type, ocean_state_type
   use MOM_surface_forcing, only: ice_ocean_boundary_type
   use MOM_grid,            only: ocean_grid_type
@@ -16,8 +16,10 @@ module mom_cap_methods
   private
 
   ! Public member functions
+#ifdef CESMCOUPLED
   public :: mom_export
   public :: mom_import
+#endif
   public :: mom_import_nems
   public :: IOB_allocate
 
@@ -32,10 +34,10 @@ contains
   subroutine IOB_allocate(IOB, isc, iec, jsc, jec, rc)
 
     ! Allocate memory for IOB - an ice-ocean boundary type with fluxes to drive
-    ! the ocean's local grid size 
+    ! the ocean's local grid size
 
-    type(ice_ocean_boundary_type) , intent(inout) :: IOB  
-    integer                       , intent(in)    :: isc, iec, jsc, jec            
+    type(ice_ocean_boundary_type) , intent(inout) :: IOB
+    integer                       , intent(in)    :: isc, iec, jsc, jec
     integer                       , intent(out)   :: rc
 
     ! local variables
@@ -67,7 +69,7 @@ contains
          IOB% mi (isc:iec,jsc:jec),              &
          IOB% p (isc:iec,jsc:jec), stat=ier)
     if (ier /= 0) then
-      call ESMF_LogSetError(ESMF_RC_MEM_ALLOCATE, &  
+      call ESMF_LogSetError(ESMF_RC_MEM_ALLOCATE, &
            msg="mom_cap_methods: IOB allocation runs out of memory ", &
            line=__LINE__, &
            file=__FILE__, rcToReturn=rc)
@@ -100,6 +102,7 @@ contains
 
 !-----------------------------------------------------------------------
 
+#ifdef CESMCOUPLED
   !> Maps outgoing ocean data to ESMF State
   !! See \ref section_mom_export for a summary of the data
   !! that is transferred from MOM6 to MCT.
@@ -541,7 +544,7 @@ contains
     end if
 
   end subroutine mom_import
-
+#endif
   !-----------------------------------------------------------------------------
 
   subroutine mom_import_nems(ocean_public, grid, importState, ice_ocean_boundary, rc)
@@ -707,7 +710,7 @@ contains
           ice_ocean_boundary%q_flux(i,j)            = -dataPtr_evap(i1,j1)
           ice_ocean_boundary%t_flux(i,j)            = -dataPtr_sensi(i1,j1)
           ice_ocean_boundary%salt_flux(i,j)         =  dataPtr_salt(i1,j1)
-          ice_ocean_boundary%lw_flux(i,j)           =  dataPtr_lwflux(i1,j1) 
+          ice_ocean_boundary%lw_flux(i,j)           =  dataPtr_lwflux(i1,j1)
           ice_ocean_boundary%sw_flux_vis_dir(i,j)   =  dataPtr_swvdr(i1,j1)
           ice_ocean_boundary%sw_flux_vis_dif(i,j)   =  dataPtr_swvdf(i1,j1)
           ice_ocean_boundary%sw_flux_nir_dir(i,j)   =  dataPtr_swndr(i1,j1)

@@ -387,7 +387,6 @@ module mom_cap_mod
   use time_manager_mod,         only: date_to_string
   use time_manager_mod,         only: fms_get_calendar_type => get_calendar_type
   use MOM_domains,              only: MOM_infra_init, num_pes, root_pe, pe_here
-  use MOM_surface_forcing,      only: IOB_allocate
   use MOM_file_parser,          only: get_param, log_version, param_file_type, close_param_file
   use MOM_get_input,            only: Get_MOM_Input, directories
   use MOM_domains,              only: pass_var
@@ -397,6 +396,7 @@ module mom_cap_mod
   use MOM_ocean_model,          only: ocean_model_restart, ocean_public_type, ocean_state_type
   use MOM_ocean_model,          only: ocean_model_data_get, ocean_model_init_sfc
   use MOM_ocean_model,          only: ocean_model_init, update_ocean_model, ocean_model_end, get_ocean_grid
+  use mom_cap_methods,          only: IOB_allocate
 #ifdef CESMCOUPLED
   use mom_cap_methods,          only: mom_import, mom_export
   use esmFlds,                  only: flds_scalar_name, flds_scalar_num
@@ -873,7 +873,11 @@ contains
     !tcx    call data_override_init(ocean_domain_in = ocean_public%domain)
 
     call mpp_get_compute_domain(ocean_public%domain, isc, iec, jsc, jec)
-    call IOB_allocate(ice_ocean_boundary, isc, iec, jsc, jec)
+    call IOB_allocate(ice_ocean_boundary, isc, iec, jsc, jec, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     call external_coupler_sbc_init(ocean_public%domain, dt_cpld, Run_len)
 

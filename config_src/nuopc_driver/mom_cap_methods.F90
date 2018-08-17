@@ -3,6 +3,7 @@ module mom_cap_methods
   use ESMF,                only: ESMF_time, ESMF_ClockGet, ESMF_TimeGet, ESMF_State, ESMF_Clock
   use ESMF,                only: ESMF_KIND_R8, ESMF_Field, ESMF_SUCCESS, ESMF_LogFoundError
   use ESMF,                only: ESMF_LOGERR_PASSTHRU, ESMF_StateGet, ESMF_FieldGet
+  use ESMF,                only: ESMF_LogSetError, ESMF_RC_MEM_ALLOCATE 
   use MOM_ocean_model,     only: ocean_public_type, ocean_state_type
   use MOM_surface_forcing, only: ice_ocean_boundary_type
   use MOM_grid,            only: ocean_grid_type
@@ -18,6 +19,7 @@ module mom_cap_methods
   public :: mom_export
   public :: mom_import
   public :: mom_import_nems
+  public :: IOB_allocate
 
   integer            :: rc,dbrc
   integer            :: import_cnt = 0
@@ -25,6 +27,77 @@ module mom_cap_methods
 
 !-----------------------------------------------------------------------
 contains
+!-----------------------------------------------------------------------
+
+  subroutine IOB_allocate(IOB, isc, iec, jsc, jec, rc)
+
+    ! Allocate memory for IOB - an ice-ocean boundary type with fluxes to drive
+    ! the ocean's local grid size 
+
+    type(ice_ocean_boundary_type) , intent(inout) :: IOB  
+    integer                       , intent(in)    :: isc, iec, jsc, jec            
+    integer                       , intent(out)   :: rc
+
+    ! local variables
+    integer :: ier
+    !-----------------------------------------------------------------------
+
+    rc = ESMF_SUCCESS
+
+    allocate( &
+         IOB% u_flux (isc:iec,jsc:jec),          &
+         IOB% v_flux (isc:iec,jsc:jec),          &
+         IOB% t_flux (isc:iec,jsc:jec),          &
+         IOB% q_flux (isc:iec,jsc:jec),          &
+         IOB% salt_flux (isc:iec,jsc:jec),       &
+         IOB% lw_flux (isc:iec,jsc:jec),         &
+         IOB% sw_flux_vis_dir (isc:iec,jsc:jec), &
+         IOB% sw_flux_vis_dif (isc:iec,jsc:jec), &
+         IOB% sw_flux_nir_dir (isc:iec,jsc:jec), &
+         IOB% sw_flux_nir_dif (isc:iec,jsc:jec), &
+         IOB% lprec (isc:iec,jsc:jec),           &
+         IOB% fprec (isc:iec,jsc:jec),           &
+         IOB% runoff (isc:iec,jsc:jec),          &
+         IOB% ustar_berg (isc:iec,jsc:jec),      &
+         IOB% area_berg (isc:iec,jsc:jec),       &
+         IOB% mass_berg (isc:iec,jsc:jec),       &
+         IOB% calving (isc:iec,jsc:jec),         &
+         IOB% runoff_hflx (isc:iec,jsc:jec),     &
+         IOB% calving_hflx (isc:iec,jsc:jec),    &
+         IOB% mi (isc:iec,jsc:jec),              &
+         IOB% p (isc:iec,jsc:jec), stat=ier)
+    if (ier /= 0) then
+      call ESMF_LogSetError(ESMF_RC_MEM_ALLOCATE, &  
+           msg="mom_cap_methods: IOB allocation runs out of memory ", &
+           line=__LINE__, &
+           file=__FILE__, rcToReturn=rc)
+      RETURN
+    endif
+
+    IOB%u_flux          = 0.0
+    IOB%v_flux          = 0.0
+    IOB%t_flux          = 0.0
+    IOB%q_flux          = 0.0
+    IOB%salt_flux       = 0.0
+    IOB%lw_flux         = 0.0
+    IOB%sw_flux_vis_dir = 0.0
+    IOB%sw_flux_vis_dif = 0.0
+    IOB%sw_flux_nir_dir = 0.0
+    IOB%sw_flux_nir_dif = 0.0
+    IOB%lprec           = 0.0
+    IOB%fprec           = 0.0
+    IOB%runoff          = 0.0
+    IOB%ustar_berg      = 0.0
+    IOB%area_berg       = 0.0
+    IOB%mass_berg       = 0.0
+    IOB%calving         = 0.0
+    IOB%runoff_hflx     = 0.0
+    IOB%calving_hflx    = 0.0
+    IOB%mi              = 0.0
+    IOB%p               = 0.0
+
+  end subroutine IOB_allocate
+
 !-----------------------------------------------------------------------
 
   !> Maps outgoing ocean data to ESMF State

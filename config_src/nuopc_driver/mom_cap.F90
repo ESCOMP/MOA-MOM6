@@ -9,7 +9,7 @@
 !!
 !! @section Overview Overview
 !!
-!! **This MOM cap has been tested with MOM5 and MOM6.**
+!! **This MOM cap has been tested with MOM6.**
 !!
 !! This document describes the MOM "cap", which is a small software layer that is
 !! required when the [MOM ocean model] (http://mom-ocean.org/web)
@@ -381,13 +381,9 @@ module mom_cap_mod
   use ocean_model_mod,          only: ocean_model_restart, ocean_public_type, ocean_state_type
   use ocean_model_mod,          only: ocean_model_data_get
   use ocean_model_mod,          only: ocean_model_init , update_ocean_model, ocean_model_end, get_ocean_grid
-#ifdef MOM6_CAP
   use ocean_model_mod,          only: ice_ocean_boundary_type
   use MOM_grid,                 only: ocean_grid_type
   use MOM_restart,              only: save_restart
-#else
-  use ocean_types_mod,          only: ice_ocean_boundary_type, ocean_grid_type
-#endif
 
   use ESMF
   use NUOPC
@@ -756,7 +752,6 @@ module mom_cap_mod
       file=__FILE__)) &
       return  ! bail out
 
-#ifdef MOM6_CAP
     ! When running mom6 solo, the rotation angles are not computed internally
     ! in MOM6. We need to
     ! calculate cos and sin of rotational angle for MOM6; the values
@@ -766,7 +761,6 @@ module mom_cap_mod
     !
     call calculate_rot_angle(Ocean_state, ocean_sfc, &
       ocean_internalstate%ptr%ocean_grid_ptr)
-#endif
 
     write(*,*) '----- MOM initialization phase Advertise completed'
 
@@ -1155,12 +1149,7 @@ module mom_cap_mod
     enddo
     enddo
 
-#ifdef MOM5_CAP
-    call ocean_model_data_get(Ocean_state, Ocean_sfc, 'ulon', ofld, isc, jsc)
-#endif
-#ifdef MOM6_CAP
     call ocean_model_data_get(Ocean_state, Ocean_sfc, 'geoLonBu', ofld, isc, jsc)
-#endif
     write(tmpstr,*) subname//' ofld xu = ',minval(ofld),maxval(ofld)
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
     call mpp_global_field(Ocean_sfc%domain, ofld, gfld)
@@ -1191,13 +1180,7 @@ module mom_cap_mod
 
 ! The corner latitude values are treated differently because MOM5 runs on B-Grid while
 ! MOM6 runs on C-Grid.
-#ifdef MOM5_CAP
-    call ocean_model_data_get(Ocean_state, Ocean_sfc, 'ulat', ofld, isc, jsc)
-#endif
-
-#ifdef MOM6_CAP
      call ocean_model_data_get(Ocean_state, Ocean_sfc, 'geoLatBu', ofld, isc, jsc)
-#endif
 
     write(tmpstr,*) subname//' ofld yu = ',minval(ofld),maxval(ofld)
     call ESMF_LogWrite(trim(tmpstr), ESMF_LOGMSG_INFO, rc=dbrc)
@@ -1452,12 +1435,7 @@ module mom_cap_mod
     lbnd2 = lbound(dataPtr_mask,2)
     ubnd2 = ubound(dataPtr_mask,2)
 
-#ifdef MOM5_CAP
-    call get_ocean_grid(Ocean_grid)
-#endif
-#ifdef MOM6_CAP
     Ocean_grid => ocean_internalstate%ptr%ocean_grid_ptr
-#endif
 
     call State_getFldPtr(importState,'mean_zonal_moment_flx',dataPtr_mzmf,rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1514,16 +1492,11 @@ module mom_cap_mod
           timestamp = date_to_string(time_restart_current)
           call ESMF_LogWrite("MOM: Writing restart at "//trim(timestamp), ESMF_LOGMSG_INFO, rc=dbrc)
           write(*,*) 'calling ocean_model_restart'
-#ifdef MOM5_CAP
-          call ocean_model_restart(Ocean_state, timestamp)
-#endif
-#ifdef MOM6_CAP
 ! Note in order to write out intermediate restart file, private for "ocean_state_type" has been removed
 ! Note for MOM6 version earlier than 20180228, use "Ocean_state%MOM_CSp%restart_CSp"
           call save_restart('./RESTART/', Ocean_state%Time, Ocean_state%grid, &
                Ocean_state%restart_CSp, .false., &
                filename=timestamp(1:8)//timestamp(10:13)//'_MOM.res.nc', GV=Ocean_state%GV)
-#endif
       endif
     endif
 
@@ -1594,36 +1567,6 @@ module mom_cap_mod
 
     call ESMF_LogWrite("Before calling sbc forcing", ESMF_LOGMSG_INFO, rc=rc)
     call external_coupler_sbc_after(Ice_ocean_boundary, Ocean_sfc, nc, dt_cpld )
-
-    call ESMF_LogWrite("Before dumpMomInternal", ESMF_LOGMSG_INFO, rc=rc)
-    !write(*,*) 'MOM: --- run phase called ---'
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_zonal_moment_flx", "will provide", Ice_ocean_boundary%u_flux)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_merid_moment_flx", "will provide", Ice_ocean_boundary%v_flux)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_sensi_heat_flx"  , "will provide", Ice_ocean_boundary%t_flux)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_evap_rate"       , "will provide", Ice_ocean_boundary%q_flux)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_salt_rate"       , "will provide", Ice_ocean_boundary%salt_flux)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_net_lw_flx"      , "will provide", Ice_ocean_boundary%lw_flux  )
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_net_sw_vis_dir_flx", "will provide", Ice_ocean_boundary%sw_flux_vis_dir)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_net_sw_vis_dif_flx", "will provide", Ice_ocean_boundary%sw_flux_vis_dif)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_net_sw_ir_dir_flx" , "will provide", Ice_ocean_boundary%sw_flux_nir_dir)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_net_sw_ir_dif_flx" , "will provide", Ice_ocean_boundary%sw_flux_nir_dif)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_prec_rate"       , "will provide", Ice_ocean_boundary%lprec  )
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_fprec_rate"      , "will provide", Ice_ocean_boundary%fprec  )
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_runoff_rate"     , "will provide", Ice_ocean_boundary%runoff )
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_calving_rate"    , "will provide", Ice_ocean_boundary%calving)
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_runoff_heat_flx" , "will provide", Ice_ocean_boundary%runoff_hflx )
-    call dumpMomInternal(mom_grid_i, import_slice, "mean_calving_heat_flx", "will provide", Ice_ocean_boundary%calving_hflx)
-    call dumpMomInternal(mom_grid_i, import_slice, "inst_pres_height_surface" , "will provide", Ice_ocean_boundary%p )
-    call dumpMomInternal(mom_grid_i, import_slice, "mass_of_overlying_sea_ice", "will provide", Ice_ocean_boundary%mi)
-
-!--------- export fields -------------
-
-    call dumpMomInternal(mom_grid_i, export_slice, "ocean_mask", "will provide", dataPtr_mask)
-    call dumpMomInternal(mom_grid_i, export_slice, "sea_surface_temperature", "will provide", Ocean_sfc%t_surf)
-    call dumpMomInternal(mom_grid_i, export_slice, "s_surf"    , "will provide", Ocean_sfc%s_surf )
-    call dumpMomInternal(mom_grid_i, export_slice, "ocn_current_zonal", "will provide", Ocean_sfc%u_surf )
-    call dumpMomInternal(mom_grid_i, export_slice, "ocn_current_merid", "will provide", Ocean_sfc%v_surf )
-    call dumpMomInternal(mom_grid_i, export_slice, "sea_lev"   , "will provide", Ocean_sfc%sea_lev)
 
     if(profile_memory) call ESMF_VMLogMemInfo("Leaving MOM Model_ADVANCE: ")
   end subroutine ModelAdvance
@@ -2067,57 +2010,6 @@ module mom_cap_mod
 
   end subroutine fld_list_add
 
-  subroutine dumpMomInternal(grid, slice, stdname, nop, farray)
-
-    type(ESMF_Grid)          :: grid
-    integer, intent(in)      :: slice
-    character(len=*)         :: stdname
-    character(len=*)         :: nop
-    real(ESMF_KIND_R8), dimension(:,:), target :: farray
-
-    type(ESMF_Field)         :: field
-    real(ESMF_KIND_R8), dimension(:,:), pointer  :: f2d
-    integer                  :: rc
-
-#ifdef MOM6_CAP
-    return
-#endif
-
-    if(.not. write_diagnostics) return ! nop in production mode
-    if(ocean_solo) return ! do not dump internal fields in ocean solo mode
-
-    field = ESMF_FieldCreate(grid, ESMF_TYPEKIND_R8, &
-      indexflag=ESMF_INDEX_DELOCAL, &
-      name=stdname, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call ESMF_FieldGet(field, farrayPtr=f2d, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    f2d(:,:) = farray(:,:)
-
-    call ESMF_FieldWrite(field, fileName='field_ocn_internal_'//trim(stdname)//'.nc', &
-      timeslice=slice, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call ESMF_FieldDestroy(field, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-  end subroutine
-
-#ifdef MOM6_CAP
   subroutine calculate_rot_angle(OS, OSFC, OG)
     type(ocean_state_type), intent(in)    :: OS
     type(ocean_public_type), intent(in)   :: OSFC
@@ -2163,7 +2055,6 @@ module mom_cap_mod
     !print *, minval(OG%cos_rot), maxval(OG%cos_rot)
 
   end subroutine
-#endif
 
 
 end module mom_cap_mod

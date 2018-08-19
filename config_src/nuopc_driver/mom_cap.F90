@@ -431,7 +431,6 @@ module mom_cap_mod
   type(ESMF_Grid), save   :: mom_grid_i
   logical                 :: write_diagnostics = .true.
   logical                 :: profile_memory = .true.
-  logical                 :: ocean_solo = .true.
   logical                 :: grid_attach_area = .false.
   integer(ESMF_KIND_I8)   :: restart_interval
 
@@ -546,15 +545,6 @@ module mom_cap_mod
       return  ! bail out
     profile_memory=(trim(value)/="false")
     call ESMF_LogWrite('MOM_CAP:ProfileMemory = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
-
-    call ESMF_AttributeGet(gcomp, name="OceanSolo", value=value, defaultValue="false", &
-      convention="NUOPC", purpose="Instance", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-    ocean_solo=(trim(value)=="true")
-    call ESMF_LogWrite('MOM_CAP:OceanSolo = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     ! Retrieve restart_interval in (seconds)
     ! A restart_interval value of 0 means no restart will be written.
@@ -1423,7 +1413,6 @@ module mom_cap_mod
 
     call mpp_get_compute_domain(Ocean_sfc%domain, isc, iec, jsc, jec)
 
-   if(.not. ocean_solo) then
     call State_getFldPtr(exportState,'ocean_mask',dataPtr_mask,rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
@@ -1476,7 +1465,6 @@ module mom_cap_mod
     dataPtr_mzmf = mzmf
     dataPtr_mmmf = mmmf
     deallocate(mzmf, mmmf)
-   endif  ! not ocean_solo
 
     !Optionally write restart files when currTime-startTime is integer multiples of restart_interval
     if(restart_interval > 0 ) then
@@ -1504,7 +1492,6 @@ module mom_cap_mod
     call update_ocean_model(Ice_ocean_boundary, Ocean_state, Ocean_sfc, Time, Time_step_coupled)
     if(profile_memory) call ESMF_VMLogMemInfo("Leaving MOM update_ocean_model: ")
 
-   if(.not. ocean_solo) then
     allocate(ofld(isc:iec,jsc:jec))
 
     call ocean_model_data_get(Ocean_state, Ocean_sfc, 'mask', ofld, isc, jsc)
@@ -1552,7 +1539,6 @@ module mom_cap_mod
       enddo
     enddo
     deallocate(ocz, ocm)
-   endif  ! not ocean_solo
 
     call ESMF_LogWrite("Before writing diagnostics", ESMF_LOGMSG_INFO, rc=rc)
     if(write_diagnostics) then

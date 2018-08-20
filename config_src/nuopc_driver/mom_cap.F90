@@ -1069,6 +1069,9 @@ contains
     call fld_list_add(fldsFrOcn_num, fldsFrOcn, "freezing_melting_potential" , "will provide",&
                       data=ocean_public%frazil)
 
+    !this needs to be added back otherwise the rotation angle isn't correct.. 
+    call calculate_rot_angle(ocean_state, ocean_public)
+
 #endif
 
     do n = 1,fldsToOcn_num
@@ -2336,6 +2339,7 @@ contains
     call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.false.)
 #else
     call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.true.)
+    call diag_manager_end(Time )
 #endif
     call field_manager_end
 
@@ -2754,7 +2758,7 @@ contains
 
   !-----------------------------------------------------------------------------
 
-#if (1 == 0)
+#ifndef CESMCOUPLED
   subroutine calculate_rot_angle(OS, OSFC)
     type(ocean_state_type), intent(in)    :: OS
     type(ocean_public_type), intent(in)   :: OSFC

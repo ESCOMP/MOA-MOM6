@@ -378,10 +378,10 @@ module mom_cap_mod
   use time_manager_mod,         only: date_to_string
   use time_manager_mod,         only: fms_get_calendar_type => get_calendar_type
 
-  use ocean_model_mod,          only: ocean_model_restart, ocean_public_type, ocean_state_type
-  use ocean_model_mod,          only: ocean_model_data_get
-  use ocean_model_mod,          only: ocean_model_init , update_ocean_model, ocean_model_end, get_ocean_grid
-  use ocean_model_mod,          only: ice_ocean_boundary_type
+  use MOM_ocean_model,          only: ocean_model_restart, ocean_public_type, ocean_state_type
+  use MOM_ocean_model,          only: ocean_model_data_get
+  use MOM_ocean_model,          only: ocean_model_init , update_ocean_model, ocean_model_end, get_ocean_grid
+  use MOM_ocean_model,          only: ice_ocean_boundary_type
   use MOM_grid,                 only: ocean_grid_type
   use MOM_restart,              only: save_restart
 

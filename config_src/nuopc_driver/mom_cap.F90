@@ -396,7 +396,6 @@ module mom_cap_mod
   use MOM_ocean_model,          only: ocean_model_restart, ocean_public_type, ocean_state_type
   use MOM_ocean_model,          only: ocean_model_data_get, ocean_model_init_sfc
   use MOM_ocean_model,          only: ocean_model_init, update_ocean_model, ocean_model_end, get_ocean_grid
-  use mom_cap_methods,          only: IOB_allocate
 #ifdef CESMCOUPLED
   use mom_cap_methods,          only: mom_import, mom_export
   use esmFlds,                  only: flds_scalar_name, flds_scalar_num
@@ -466,7 +465,6 @@ module mom_cap_mod
   logical                 :: profile_memory = .true.
   logical                 :: grid_attach_area = .false.
   integer(ESMF_KIND_I8)   :: restart_interval
-  logical                 :: sw_decomp
   character(len=*),parameter :: u_file_u = &
        __FILE__
 
@@ -862,24 +860,57 @@ contains
     end if
     call ocean_model_init_sfc(ocean_state, ocean_public)
 
-#else
-
-    ocean_public%is_ocean_pe = .true.
-    call ocean_model_init(ocean_public, ocean_state, Time, Time)
-
-#endif
-
     !tcx tcraig This results in errors in CESM with help from Alper
     ! FATAL error "MPP_OPEN: error in OPEN for data_table"
     ! The subroutine data_override_init shouldn't be called because ALLOW_FLUX_ADJUSTMENTS is set to FALSE
     !tcx    call data_override_init(ocean_domain_in = ocean_public%domain)
 
+#else
+
+    ocean_public%is_ocean_pe = .true.
+    call ocean_model_init(ocean_public, ocean_state, Time, Time)
+    call data_override_init(Ocean_domain_in = Ocean_sfc%domain)
+
+#endif
+
     call mpp_get_compute_domain(ocean_public%domain, isc, iec, jsc, jec)
-    call IOB_allocate(ice_ocean_boundary, isc, iec, jsc, jec, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
+    allocate ( Ice_ocean_boundary% u_flux (isc:iec,jsc:jec),          &
+               Ice_ocean_boundary% v_flux (isc:iec,jsc:jec),          &
+               Ice_ocean_boundary% t_flux (isc:iec,jsc:jec),          &
+               Ice_ocean_boundary% q_flux (isc:iec,jsc:jec),          &
+               Ice_ocean_boundary% salt_flux (isc:iec,jsc:jec),       &
+               Ice_ocean_boundary% lw_flux (isc:iec,jsc:jec),         &
+               Ice_ocean_boundary% sw_flux_vis_dir (isc:iec,jsc:jec), &
+               Ice_ocean_boundary% sw_flux_vis_dif (isc:iec,jsc:jec), &
+               Ice_ocean_boundary% sw_flux_nir_dir (isc:iec,jsc:jec), &
+               Ice_ocean_boundary% sw_flux_nir_dif (isc:iec,jsc:jec), &
+               Ice_ocean_boundary% lprec (isc:iec,jsc:jec),           &
+               Ice_ocean_boundary% fprec (isc:iec,jsc:jec),           &
+               Ice_ocean_boundary% runoff (isc:iec,jsc:jec),          &
+               Ice_ocean_boundary% calving (isc:iec,jsc:jec),         &
+               Ice_ocean_boundary% runoff_hflx (isc:iec,jsc:jec),     &
+               Ice_ocean_boundary% calving_hflx (isc:iec,jsc:jec),    &
+               Ice_ocean_boundary% mi (isc:iec,jsc:jec),              &
+               Ice_ocean_boundary% p (isc:iec,jsc:jec))
+
+    Ice_ocean_boundary%u_flux          = 0.0
+    Ice_ocean_boundary%v_flux          = 0.0
+    Ice_ocean_boundary%t_flux          = 0.0
+    Ice_ocean_boundary%q_flux          = 0.0
+    Ice_ocean_boundary%salt_flux       = 0.0
+    Ice_ocean_boundary%lw_flux         = 0.0
+    Ice_ocean_boundary%sw_flux_vis_dir = 0.0
+    Ice_ocean_boundary%sw_flux_vis_dif = 0.0
+    Ice_ocean_boundary%sw_flux_nir_dir = 0.0
+    Ice_ocean_boundary%sw_flux_nir_dif = 0.0
+    Ice_ocean_boundary%lprec           = 0.0
+    Ice_ocean_boundary%fprec           = 0.0
+    Ice_ocean_boundary%runoff          = 0.0
+    Ice_ocean_boundary%calving         = 0.0
+    Ice_ocean_boundary%runoff_hflx     = 0.0
+    Ice_ocean_boundary%calving_hflx    = 0.0
+    Ice_ocean_boundary%mi              = 0.0
+    Ice_ocean_boundary%p               = 0.0
 
     call external_coupler_sbc_init(ocean_public%domain, dt_cpld, Run_len)
 
@@ -2339,8 +2370,8 @@ contains
     call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.false.)
 #else
     call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.true.)
-    call diag_manager_end(Time )
 #endif
+    call diag_manager_end(Time)
     call field_manager_end
 
     call fms_io_exit

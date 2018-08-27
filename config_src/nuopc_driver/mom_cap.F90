@@ -869,7 +869,7 @@ contains
 
     ocean_public%is_ocean_pe = .true.
     call ocean_model_init(ocean_public, ocean_state, Time, Time)
-    call data_override_init(Ocean_domain_in = Ocean_sfc%domain)
+    call data_override_init(Ocean_domain_in = Ocean_public%domain)
 
 #endif
 

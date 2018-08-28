@@ -1994,16 +1994,22 @@ contains
     dataPtr_evap = - dataPtr_evap
     dataPtr_sensi = - dataPtr_sensi
 
+    print *, 'lbnd1,ubnd1,lbnd2,ubnd2', lbnd1, ubnd1, lbnd2, ubnd2
+
     allocate(mzmf(lbnd1:ubnd1,lbnd2:ubnd2))
     allocate(mmmf(lbnd1:ubnd1,lbnd2:ubnd2))
     do j  = lbnd2, ubnd2
       do i = lbnd1, ubnd1
         j1 = j - lbnd2 + jsc  ! work around local vs global indexing
         i1 = i - lbnd1 + isc
-        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
-                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
-        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
-                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j)
+!        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
+!                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
+!        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
+!                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j)
+        mzmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mzmf(i,j) &
+                  + ocean_grid%sin_rot(i,j)*dataPtr_mmmf(i,j)
+        mmmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mmmf(i,j) &
+                  - ocean_grid%sin_rot(i,j)*dataPtr_mzmf(i,j)
       enddo
     enddo
     dataPtr_mzmf = mzmf
@@ -2149,10 +2155,14 @@ contains
       do i = lbnd1, ubnd1
         j1 = j - lbnd2 + jsc  ! work around local vs global indexing
         i1 = i - lbnd1 + isc
-        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
-                         - ocean_grid%sin_rot(i1,j1)*ocm(i,j)
-        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
-                         + ocean_grid%sin_rot(i1,j1)*ocz(i,j)
+!        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
+!                         - ocean_grid%sin_rot(i1,j1)*ocm(i,j)
+!        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
+!                         + ocean_grid%sin_rot(i1,j1)*ocz(i,j)
+        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i,j)*ocz(i,j) &
+                         - ocean_grid%sin_rot(i,j)*ocm(i,j)
+        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i,j)*ocm(i,j) &
+                         + ocean_grid%sin_rot(i,j)*ocz(i,j)
       enddo
     enddo
     deallocate(ocz, ocm)
@@ -2800,12 +2810,13 @@ contains
 
     call get_ocean_grid(OS, grid)
 
-    !print *, 'lbound: ', lbound(grid%geoLatT), lbound(grid%geoLonT), lbound(grid%sin_rot)
-    !print *, 'ubound: ', ubound(grid%geoLatT), ubound(grid%geoLonT), ubound(grid%sin_rot)
+    print *, 'lbound: ', lbound(grid%geoLatT), lbound(grid%geoLonT), lbound(grid%sin_rot)
+    print *, 'ubound: ', ubound(grid%geoLatT), ubound(grid%geoLonT), ubound(grid%sin_rot)
 
-    !print *, minval(grid%geoLatT), maxval(grid%geoLatT)
-    !print *, minval(grid%geoLonT), maxval(grid%geoLonT)
-    !print *, grid%isc, grid%jsc, grid%iec, grid%jec
+    print *, minval(grid%geoLatT), maxval(grid%geoLatT)
+    print *, minval(grid%geoLonT), maxval(grid%geoLonT)
+    print *, 'isc, iec, jsc, jec', grid%isc, grid%iec, grid%jsc, grid%jec
+    print *, 'isd, ied, jsd, ied', grid%isd, grid%ied, grid%isd, grid%jed
 
     !
     ! The bounds isc:iec goes from 5-104, isc-ishift:iec-ishift goes from 1:100
@@ -2813,8 +2824,8 @@ contains
     call mpp_get_compute_domain(OSFC%Domain, ilb, iub, jlb, jub)
     ishift = ilb-grid%isc
     jshift = jlb-grid%jsc
-    !print *, 'ilb, iub, jlb, jub', ilb, iub, jlb, jub, ishift, jshift
-    !print *, 'sizes', iub-ilb, jub-jlb, grid%iec-grid%isc, grid%jec-grid%jsc
+    print *, 'ilb, iub, jlb, jub', ilb, iub, jlb, jub, ishift, jshift
+    print *, 'sizes', iub-ilb, jub-jlb, grid%iec-grid%isc, grid%jec-grid%jsc
 !    allocate(grid%sin_rot(ilb:iub, jlb:jub))
 !    allocate(grid%cos_rot(ilb:iub, jlb:jub))
 
@@ -2826,11 +2837,13 @@ contains
                             grid%geoLonBu(I-1,J-1) - grid%geoLonBu(I,J-1))*lon_scale, &
                             grid%geoLatBu(I-1,J) + grid%geoLatBu(I,J) - &
                             grid%geoLatBu(I-1,J-1) - grid%geoLatBu(I,J-1) )
-      grid%sin_rot(i+ishift,j+jshift) = sin(angle) ! angle is the clockwise angle from lat/lon to ocean
-      grid%cos_rot(i+ishift,j+jshift) = cos(angle) ! grid (e.g. angle of ocean "north" from true north)
+!      grid%sin_rot(i+ishift,j+jshift) = sin(angle) ! angle is the clockwise angle from lat/lon to ocean
+!      grid%cos_rot(i+ishift,j+jshift) = cos(angle) ! grid (e.g. angle of ocean "north" from true north)
+      grid%sin_rot(i,j) = sin(angle) ! angle is the clockwise angle from lat/lon to ocean
+      grid%cos_rot(i,j) = cos(angle) ! grid (e.g. angle of ocean "north" from true north)
     enddo ; enddo
-    !print *, minval(grid%sin_rot), maxval(grid%sin_rot)
-    !print *, minval(grid%cos_rot), maxval(grid%cos_rot)
+    print *, minval(grid%sin_rot), maxval(grid%sin_rot)
+    print *, minval(grid%cos_rot), maxval(grid%cos_rot)
 
   end subroutine
 #endif

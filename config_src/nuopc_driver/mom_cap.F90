@@ -411,8 +411,8 @@ module mom_cap_mod
   use NUOPC_Model, &            ! TODO: only: ...
     model_routine_SS           => SetServices, &
     model_label_Advance        => label_Advance, &
-#ifdef CESMCOUPLED
     model_label_DataInitialize => label_DataInitialize, &
+#ifdef CESMCOUPLED
     model_label_SetRunClock    => label_SetRunClock, &
 #endif
     model_label_Finalize       => label_Finalize
@@ -518,14 +518,12 @@ contains
     ! attach specializing method(s)
     !------------------
 
-#ifdef CESMCOUPLED
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_DataInitialize, &
       specRoutine=DataInitialize, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-#endif
 
     call NUOPC_CompSpecialize(gcomp, specLabel=model_label_Advance, &
       specRoutine=ModelAdvance, rc=rc)
@@ -1708,7 +1706,6 @@ contains
 
   !===============================================================================
 
-#ifdef CESMCOUPLED
   subroutine DataInitialize(gcomp, rc)
     type(ESMF_GridComp)  :: gcomp
     integer, intent(out) :: rc
@@ -1745,11 +1742,13 @@ contains
     ocean_state        => ocean_internalstate%ptr%ocean_state_type_ptr
     call get_ocean_grid(ocean_state, ocean_grid)
 
+#ifdef CESMCOUPLED
     call mom_export(ocean_public, ocean_grid, exportState, logunit, clock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
+#endif
 
     call ESMF_StateGet(exportState, itemCount=fieldCount, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1800,7 +1799,6 @@ contains
     endif
 
   end subroutine DataInitialize
-#endif
 
   !===============================================================================
 

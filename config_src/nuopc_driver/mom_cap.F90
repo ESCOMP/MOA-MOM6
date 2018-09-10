@@ -1694,14 +1694,14 @@ contains
       deallocate(ofld)
     endif
 
-! tcraig, turn this off for now, have issues with overwriting failures
-!    call NUOPC_Write(exportState, fileNamePrefix='init_field_ocn_export_', &
-!      timeslice=1, relaxedFlag=.true., rc=rc)
-!    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-!      line=__LINE__, &
-!      file=__FILE__)) &
-!      return  ! bail out
-
+    
+    !call NUOPC_Write(exportState, fileNamePrefix='post_realize_field_ocn_export_', &
+    !     timeslice=1, relaxedFlag=.true., rc=rc)
+    !if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+    !     line=__LINE__, &
+    !     file=__FILE__)) &
+    !     return  ! bail out
+    
     write(*,*) '----- MOM initialization phase Realize completed'
 
   end subroutine InitializeRealize
@@ -2163,6 +2163,11 @@ contains
                          - ocean_grid%sin_rot(i,j)*ocm(i,j)
         dataPtr_ocm(i,j) = ocean_grid%cos_rot(i,j)*ocm(i,j) &
                          + ocean_grid%sin_rot(i,j)*ocz(i,j)
+
+        ! multiply by mask to zero out non-ocean points
+        dataPtr_ocz(i,j) = dataPtr_ocz(i,j) * dataPtr_mask(i,j)
+        dataPtr_ocm(i,j) = dataPtr_ocm(i,j) * dataPtr_mask(i,j)
+
       enddo
     enddo
     deallocate(ocz, ocm)
@@ -2635,6 +2640,7 @@ contains
     integer          :: npet, nx, ny, pet
     integer          :: elb(2), eub(2), clb(2), cub(2), tlb(2), tub(2)
     type(ESMF_VM)    :: vm
+    real(ESMF_KIND_R8), pointer :: fldptr(:,:)
     character(len=*),parameter  :: subname='(mom_cap:MOM_RealizeFields)'
 
     rc = ESMF_SUCCESS
@@ -2689,6 +2695,15 @@ contains
             line=__LINE__, &
             file=__FILE__)) &
             return  ! bail out
+          
+          ! initialize to zero
+          call ESMF_FieldGet(field, farrayPtr=fldptr, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+          fldptr = 0.0 
+
         endif
 
         call NUOPC_Realize(state, field=field, rc=rc)

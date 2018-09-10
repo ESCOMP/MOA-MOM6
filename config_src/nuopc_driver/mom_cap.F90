@@ -2002,14 +2002,16 @@ contains
       do i = lbnd1, ubnd1
 !        j1 = j - lbnd2 + jsc  ! work around local vs global indexing
 !        i1 = i - lbnd1 + isc
+        j1 = j + ocean_grid%jsc - lbnd2
+        i1 = i + ocean_grid%isc - lbnd1
 !        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
 !                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
 !        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
 !                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j)
-        mzmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mzmf(i,j) &
-                  + ocean_grid%sin_rot(i,j)*dataPtr_mmmf(i,j)
-        mmmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mmmf(i,j) &
-                  - ocean_grid%sin_rot(i,j)*dataPtr_mzmf(i,j)
+        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
+                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
+        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
+                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j) 
       enddo
     enddo
     dataPtr_mzmf = mzmf
@@ -2155,14 +2157,16 @@ contains
       do i = lbnd1, ubnd1
 !        j1 = j - lbnd2 + jsc  ! work around local vs global indexing
 !        i1 = i - lbnd1 + isc
+        j1 = j + ocean_grid%jsc - lbnd2
+        i1 = i + ocean_grid%isc - lbnd1
 !        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
 !                         - ocean_grid%sin_rot(i1,j1)*ocm(i,j)
 !        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
 !                         + ocean_grid%sin_rot(i1,j1)*ocz(i,j)
-        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i,j)*ocz(i,j) &
-                         - ocean_grid%sin_rot(i,j)*ocm(i,j)
-        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i,j)*ocm(i,j) &
-                         + ocean_grid%sin_rot(i,j)*ocz(i,j)
+        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
+                         + ocean_grid%sin_rot(i1,j1)*ocm(i,j)
+        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
+                         - ocean_grid%sin_rot(i1,j1)*ocz(i,j)
       enddo
     enddo
     deallocate(ocz, ocm)

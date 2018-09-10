@@ -398,8 +398,8 @@ module mom_cap_mod
   use MOM_ocean_model,          only: ocean_model_init, update_ocean_model, ocean_model_end, get_ocean_grid
 #ifdef CESMCOUPLED
   use mom_cap_methods,          only: mom_import, mom_export
-  use esmFlds,                  only: flds_scalar_name, flds_scalar_num
-  use esmFlds,                  only: flds_scalar_index_nx, flds_scalar_index_ny
+  use shr_nuopc_scalars_mod,    only: flds_scalar_name, flds_scalar_num
+  use shr_nuopc_scalars_mod,    only: flds_scalar_index_nx, flds_scalar_index_ny
   use shr_file_mod,             only: shr_file_getUnit, shr_file_freeUnit
   use shr_file_mod,             only: shr_file_getLogUnit, shr_file_getLogLevel
   use shr_file_mod,             only: shr_file_setLogUnit, shr_file_setLogLevel
@@ -502,13 +502,13 @@ contains
 
     ! set entry point for methods that require specific implementation
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      phaseLabelList=(/"IPDv01p1"/), userRoutine=InitializeAdvertise, rc=rc)
+      phaseLabelList=(/"IPDv03p1"/), userRoutine=InitializeAdvertise, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
     call NUOPC_CompSetEntryPoint(gcomp, ESMF_METHOD_INITIALIZE, &
-      phaseLabelList=(/"IPDv01p3"/), userRoutine=InitializeRealize, rc=rc)
+      phaseLabelList=(/"IPDv03p3"/), userRoutine=InitializeRealize, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -581,9 +581,9 @@ contains
 
     rc = ESMF_SUCCESS
 
-    ! Switch to IPDv01 by filtering all other phaseMap entries
+    ! Switch to IPDv03 by filtering all other phaseMap entries
     call NUOPC_CompFilterPhaseMap(gcomp, ESMF_METHOD_INITIALIZE, &
-      acceptStringList=(/"IPDv01p"/), rc=rc)
+      acceptStringList=(/"IPDv03p"/), rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
@@ -2002,14 +2002,16 @@ contains
       do i = lbnd1, ubnd1
 !        j1 = j - lbnd2 + jsc  ! work around local vs global indexing
 !        i1 = i - lbnd1 + isc
+        j1 = j + ocean_grid%jsc - lbnd2
+        i1 = i + ocean_grid%isc - lbnd1
 !        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
 !                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
 !        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
 !                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j)
-        mzmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mzmf(i,j) &
-                  + ocean_grid%sin_rot(i,j)*dataPtr_mmmf(i,j)
-        mmmf(i,j) = ocean_grid%cos_rot(i,j)*dataPtr_mmmf(i,j) &
-                  - ocean_grid%sin_rot(i,j)*dataPtr_mzmf(i,j)
+        mzmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mzmf(i,j) &
+                  - ocean_grid%sin_rot(i1,j1)*dataPtr_mmmf(i,j)
+        mmmf(i,j) = ocean_grid%cos_rot(i1,j1)*dataPtr_mmmf(i,j) &
+                  + ocean_grid%sin_rot(i1,j1)*dataPtr_mzmf(i,j) 
       enddo
     enddo
     dataPtr_mzmf = mzmf
@@ -2153,21 +2155,15 @@ contains
     ocm = dataPtr_ocm
     do j  = lbnd2, ubnd2
       do i = lbnd1, ubnd1
-!        j1 = j - lbnd2 + jsc  ! work around local vs global indexing
-!        i1 = i - lbnd1 + isc
-!        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
-!                         - ocean_grid%sin_rot(i1,j1)*ocm(i,j)
-!        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
-!                         + ocean_grid%sin_rot(i1,j1)*ocz(i,j)
-        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i,j)*ocz(i,j) &
-                         - ocean_grid%sin_rot(i,j)*ocm(i,j)
-        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i,j)*ocm(i,j) &
-                         + ocean_grid%sin_rot(i,j)*ocz(i,j)
-
+        j1 = j + ocean_grid%jsc - lbnd2
+        i1 = i + ocean_grid%isc - lbnd1
+        dataPtr_ocz(i,j) = ocean_grid%cos_rot(i1,j1)*ocz(i,j) &
+                         + ocean_grid%sin_rot(i1,j1)*ocm(i,j)
+        dataPtr_ocm(i,j) = ocean_grid%cos_rot(i1,j1)*ocm(i,j) &
+                         - ocean_grid%sin_rot(i1,j1)*ocz(i,j)
         ! multiply by mask to zero out non-ocean points
         dataPtr_ocz(i,j) = dataPtr_ocz(i,j) * dataPtr_mask(i,j)
         dataPtr_ocm(i,j) = dataPtr_ocm(i,j) * dataPtr_mask(i,j)
-
       enddo
     enddo
     deallocate(ocz, ocm)

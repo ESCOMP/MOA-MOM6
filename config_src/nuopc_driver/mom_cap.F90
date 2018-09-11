@@ -396,6 +396,7 @@ module mom_cap_mod
   use MOM_ocean_model,          only: ocean_model_restart, ocean_public_type, ocean_state_type
   use MOM_ocean_model,          only: ocean_model_data_get, ocean_model_init_sfc
   use MOM_ocean_model,          only: ocean_model_init, update_ocean_model, ocean_model_end, get_ocean_grid
+  use mom_cap_time,             only: AlarmInit
 #ifdef CESMCOUPLED
   use mom_cap_methods,          only: mom_import, mom_export
   use shr_nuopc_scalars_mod,    only: flds_scalar_name, flds_scalar_num
@@ -403,7 +404,6 @@ module mom_cap_mod
   use shr_file_mod,             only: shr_file_getUnit, shr_file_freeUnit
   use shr_file_mod,             only: shr_file_getLogUnit, shr_file_getLogLevel
   use shr_file_mod,             only: shr_file_setLogUnit, shr_file_setLogLevel
-  use shr_nuopc_time_mod,       only: shr_nuopc_time_alarmInit
 #endif
 
   use ESMF                      ! TODO: only: ...
@@ -454,13 +454,10 @@ module mom_cap_mod
   character(len=256)   :: tmpstr
   integer              :: dbrc
   type(ESMF_Grid)      :: mom_grid_i
-
+  logical              :: write_diagnostics = .false.
 #ifdef CESMCOUPLED
-  logical                 :: write_diagnostics = .false.
   integer                 :: logunit  ! stdout logging unit number
   character(len=32)       :: runtype  ! run type
-#else
-  logical                 :: write_diagnostics = .true.
 #endif
   logical                 :: profile_memory = .true.
   logical                 :: grid_attach_area = .false.
@@ -595,7 +592,7 @@ contains
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-    !    write_diagnostics=(trim(value)=="true")
+    write_diagnostics=(trim(value)=="true")
     call ESMF_LogWrite('MOM_CAP:DumpFields = '//trim(value), ESMF_LOGMSG_INFO, rc=dbrc)
 
     call ESMF_AttributeGet(gcomp, name="ProfileMemory", value=value, defaultValue="true", &
@@ -2291,7 +2288,7 @@ contains
             return  ! bail out
        read(cvalue,*) restart_ymd
 
-       call shr_nuopc_time_alarmInit(mclock, &
+       call AlarmInit(mclock, &
             alarm   = restart_alarm,         &
             option  = trim(restart_option),  &
             opt_n   = restart_n,             &

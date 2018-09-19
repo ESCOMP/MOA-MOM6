@@ -450,16 +450,14 @@ module mom_cap_mod
   character(len=256)   :: tmpstr
   type(ESMF_Grid)      :: mom_grid_i
   logical              :: write_diagnostics = .false.
-#ifdef CESMCOUPLED
-  integer                 :: logunit  ! stdout logging unit number
-  character(len=32)       :: runtype  ! run type
-#endif
-  logical                 :: profile_memory = .true.
-  logical                 :: grid_attach_area = .false.
-  character(len=128)      :: scalar_field_name
-  integer                 :: scalar_field_count
-  integer                 :: scalar_field_idx_grid_nx 
-  integer                 :: scalar_field_idx_grid_ny
+  character(len=32)    :: runtype  ! run type
+  integer              :: logunit  ! stdout logging unit number
+  logical              :: profile_memory = .true.
+  logical              :: grid_attach_area = .false.
+  character(len=128)   :: scalar_field_name
+  integer              :: scalar_field_count
+  integer              :: scalar_field_idx_grid_nx 
+  integer              :: scalar_field_idx_grid_ny
   character(len=*),parameter :: u_file_u = &
        __FILE__
 
@@ -592,7 +590,7 @@ contains
     if (isPresent .and. isSet) write_diagnostics=(trim(value)=="true")
     
     write(logmsg,*) write_diagnostics
-    call ESMF_LogWrite('MOM_CAP:DumpFields = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite('mom_cap:DumpFields = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
@@ -607,7 +605,7 @@ contains
          return  
     if (isPresent .and. isSet) profile_memory=(trim(value)=="true")
     write(logmsg,*) profile_memory
-    call ESMF_LogWrite('MOM_CAP:ProfileMemory = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite('mom_cap:ProfileMemory = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
@@ -622,7 +620,7 @@ contains
          return  
     if (isPresent .and. isSet) grid_attach_area=(trim(value)=="true")
     write(logmsg,*) grid_attach_area
-    call ESMF_LogWrite('MOM_CAP:GridAttachArea = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite('mom_cap:GridAttachArea = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
@@ -636,7 +634,7 @@ contains
          file=__FILE__)) &
          return  
     if (isPresent .and. isSet) scalar_field_name = trim(value)
-    call ESMF_LogWrite('MOM_CAP:ScalarFieldName = '//trim(scalar_field_name), ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite('mom_cap:ScalarFieldName = '//trim(scalar_field_name), ESMF_LOGMSG_INFO, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
@@ -658,7 +656,7 @@ contains
           return
        endif
        write(logmsg,*) scalar_field_count
-       call ESMF_LogWrite('MOM_CAP:ScalarFieldCount = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite('mom_cap:ScalarFieldCount = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
@@ -681,7 +679,7 @@ contains
           return
        endif
        write(logmsg,*) scalar_field_idx_grid_nx
-       call ESMF_LogWrite('MOM_CAP:ScalarFieldIdxGridNX = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite('mom_cap:ScalarFieldIdxGridNX = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
@@ -704,7 +702,7 @@ contains
           return
        endif
        write(logmsg,*) scalar_field_idx_grid_ny
-       call ESMF_LogWrite('MOM_CAP:ScalarFieldIdxGridNY = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
+       call ESMF_LogWrite('mom_cap:ScalarFieldIdxGridNY = '//trim(logmsg), ESMF_LOGMSG_INFO, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
@@ -866,7 +864,7 @@ contains
        return 
     endif
 
-    call ESMF_LogWrite('MOM_CAP:startup = '//trim(runtype), ESMF_LOGMSG_INFO, rc=rc)
+    call ESMF_LogWrite('mom_cap:startup = '//trim(runtype), ESMF_LOGMSG_INFO, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
@@ -877,7 +875,8 @@ contains
        ! startup (new run) - 'n' is needed below if we don't specify input_filename in input.nml
        restartfile = "n"
     else  ! hybrid or branch or continuos runs
-       
+
+       ! optionally call into system-specific implementation to get restart file name
        call ESMF_MethodExecute(gcomp, label="GetRestartFileToRead", &
             existflag=existflag, userRc=userRc, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg="Error executing user method to get restart filename", &
@@ -889,7 +888,7 @@ contains
             file=__FILE__)) &
             return  ! bail out
        if (existflag) then
-          call ESMF_LogWrite('MOM_CAP: called user GetRestartFileToRead', ESMF_LOGMSG_INFO, rc=rc)
+          call ESMF_LogWrite('mom_cap: called user GetRestartFileToRead', ESMF_LOGMSG_INFO, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
                file=__FILE__)) &
@@ -904,13 +903,13 @@ contains
             return  
        if (isPresent .and. isSet) then
           restartfile = trim(cvalue)
-          call ESMF_LogWrite('MOM_CAP: RestartFileToRead = '//trim(restartfile), ESMF_LOGMSG_INFO, rc=rc)
+          call ESMF_LogWrite('mom_cap: RestartFileToRead = '//trim(restartfile), ESMF_LOGMSG_INFO, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
                file=__FILE__)) &
                return         
        else
-          call ESMF_LogWrite('MOM_CAP: restart requested but no RestartFileToRead attribute provided - will use input.nml', & 
+          call ESMF_LogWrite('mom_cap: restart requested but no RestartFileToRead attribute provided - will use input.nml', & 
                ESMF_LOGMSG_WARNING, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
@@ -1159,9 +1158,6 @@ contains
     call fld_list_add(fldsFrOcn_num, fldsFrOcn, "freezing_melting_potential" , "will provide",&
                       data=ocean_public%frazil)
 
-    !rsd removing this call in order to use MOM6 computed values
-    !call calculate_rot_angle(ocean_state, ocean_public)
-
 #endif
 
     do n = 1,fldsToOcn_num
@@ -1179,17 +1175,6 @@ contains
         file=__FILE__)) &
         return  ! bail out
     enddo
-
-    ! When running mom6 solo, the rotation angles are not computed internally
-    ! in MOM6. We need to calculate cos and sin of rotational angle for MOM6;
-    ! the values are stored in ocean_internalstate%ptr%ocean_grid_ptr%cos_rot and sin_rot
-    ! The rotation angles are retrieved during run time to rotate incoming
-    ! and outgoing vectors
-    ! call calculate_rot_angle(ocean_state, ocean_public)
-    ! tcraig, this is handled fine internally and if not, then later call this
-    ! call initialize_grid_rotation_angle(ocean_grid, PF)
-
-    write(*,*) '----- MOM initialization phase Advertise completed'
 
   end subroutine InitializeAdvertise
 
@@ -1777,8 +1762,6 @@ contains
     !     file=__FILE__)) &
     !     return  ! bail out
     
-    write(*,*) '----- MOM initialization phase Realize completed'
-
   end subroutine InitializeRealize
 
   !===============================================================================
@@ -2153,7 +2136,7 @@ contains
            file=__FILE__)) &
            return  ! bail out
       if (existflag) then
-         call ESMF_LogWrite("MOM_CAP: called user GetRestartFileToWrite method", ESMF_LOGMSG_INFO, rc=rc)
+         call ESMF_LogWrite("mom_cap: called user GetRestartFileToWrite method", ESMF_LOGMSG_INFO, rc=rc)
          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
               line=__LINE__, &
               file=__FILE__)) &
@@ -2166,7 +2149,7 @@ contains
               return  ! bail out
          if (isPresent .and. isSet) then
             restartname = trim(cvalue)
-            call ESMF_LogWrite("MOM_CAP: User RestartFileToWrite: "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
+            call ESMF_LogWrite("mom_cap: User RestartFileToWrite: "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
             if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                  line=__LINE__, &
                  file=__FILE__)) &
@@ -2187,7 +2170,7 @@ contains
               file=__FILE__)) &
               return  ! bail out
          write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I5.5)') "OCN", year, month, day, seconds
-         call ESMF_LogWrite("MOM_CAP: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
+         call ESMF_LogWrite("mom_cap: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
               line=__LINE__, &
               file=__FILE__)) &
@@ -2635,19 +2618,12 @@ contains
           line=__LINE__, &
           file=__FILE__)) &
           return  ! bail out
-        !        call ESMF_FieldPrint(field=field, rc=rc)
-        !        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        !          line=__LINE__, &
-        !          file=__FILE__)) &
-        !          return  ! bail out
       else
         call ESMF_LogWrite(subname // tag // " Field "// trim(field_defs(i)%stdname) // " is not connected.", &
           ESMF_LOGMSG_INFO, &
           line=__LINE__, &
           file=__FILE__, &
           rc=rc)
-        ! TODO: Initialize the value in the pointer to 0 after proper restart is setup
-        ! if(associated(field_defs(i)%farrayPtr) ) field_defs(i)%farrayPtr = 0.0
         ! remove a not connected Field from State
         call ESMF_StateRemove(state, (/field_defs(i)%shortname/), rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &

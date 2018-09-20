@@ -633,12 +633,14 @@ contains
          line=__LINE__, &
          file=__FILE__)) &
          return  
-    if (isPresent .and. isSet) scalar_field_name = trim(value)
-    call ESMF_LogWrite('mom_cap:ScalarFieldName = '//trim(scalar_field_name), ESMF_LOGMSG_INFO, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-         line=__LINE__, &
-         file=__FILE__)) &
-         return  
+    if (isPresent .and. isSet) then 
+       scalar_field_name = trim(value)
+       call ESMF_LogWrite('mom_cap:ScalarFieldName = '//trim(scalar_field_name), ESMF_LOGMSG_INFO, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  
+    endif
 
     scalar_field_count = 0
     call NUOPC_CompAttributeGet(gcomp, name="ScalarFieldCount", value=value, &
@@ -768,6 +770,12 @@ contains
 
     rc = ESMF_SUCCESS
 
+    call ESMF_LogWrite(subname//' enter', ESMF_LOGMSG_INFO, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return         
+
     allocate(Ice_ocean_boundary)
     !allocate(ocean_state) ! ocean_model_init allocate this pointer
     allocate(ocean_public)
@@ -844,37 +852,51 @@ contains
        logunit = output_unit
     endif
 
-    call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, rc=rc)
+    starttype = ""
+    call NUOPC_CompAttributeGet(gcomp, name='start_type', value=cvalue, & 
+         isPresent=isPresent, isSet=isSet, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
          line=__LINE__, &
          file=__FILE__)) &
-         return  
-    read(cvalue,*) starttype
+         return
+    if (isPresent .and. isSet) then
+       read(cvalue,*) starttype
+    else
+       call ESMF_LogWrite('mom_cap:start_type unset - using input.nml for restart option', &
+            ESMF_LOGMSG_INFO, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return         
+    endif
 
+    runtype = ""
     if (trim(starttype) == trim('startup')) then
        runtype = "initial"
     else if (trim(starttype) == trim('continue') ) then
        runtype = "continue"
     else if (trim(starttype) == trim('branch')) then
        runtype = "continue"
-    else
+    else if (len_trim(starttype) > 0) then
        call ESMF_LogSetError(ESMF_RC_ARG_BAD, &
             msg=subname//": unknown starttype - "//trim(starttype), &
             line=__LINE__, file=__FILE__, rcToReturn=rc)
        return 
     endif
 
-    call ESMF_LogWrite('mom_cap:startup = '//trim(runtype), ESMF_LOGMSG_INFO, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-         line=__LINE__, &
-         file=__FILE__)) &
-         return         
+    if (len_trim(runtype) > 0) then
+       call ESMF_LogWrite('mom_cap:startup = '//trim(runtype), ESMF_LOGMSG_INFO, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return         
+    endif
     
     restartfile = ""
     if (runtype == "initial") then
        ! startup (new run) - 'n' is needed below if we don't specify input_filename in input.nml
        restartfile = "n"
-    else  ! hybrid or branch or continuos runs
+    else if (runtype == "continue") then ! hybrid or branch or continuos runs
 
        ! optionally call into system-specific implementation to get restart file name
        call ESMF_MethodExecute(gcomp, label="GetRestartFileToRead", &
@@ -2274,6 +2296,7 @@ contains
     integer                  :: restart_n      ! Number until restart interval
     integer                  :: restart_ymd    ! Restart date (YYYYMMDD)
     type(ESMF_ALARM)         :: restart_alarm
+    logical                  :: isPresent, isSet
     logical                  :: first_time = .true.
     character(len=*),parameter :: subname='mom_cap:(ModelSetRunClock) '
     !--------------------------------
@@ -2338,26 +2361,32 @@ contains
        !--------------------------------                                                                                 
        ! set restart alarm
        !--------------------------------                                                                                 
-       call NUOPC_CompAttributeGet(gcomp, name="restart_option", value=restart_option, rc=rc)
+       call NUOPC_CompAttributeGet(gcomp, name="restart_option", isPresent=isPresent, &
+            isSet=isSet, value=restart_option, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
             return  ! bail out
-
-       call NUOPC_CompAttributeGet(gcomp,  name="restart_n", value=cvalue, rc=rc)
-       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
-       read(cvalue,*) restart_n
-
-       call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
-       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__, &
-            file=__FILE__)) &
-            return  ! bail out
-       read(cvalue,*) restart_ymd
-
+       if (isPresent .and. isSet) then
+          call NUOPC_CompAttributeGet(gcomp,  name="restart_n", value=cvalue, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          read(cvalue,*) restart_n
+          call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          read(cvalue,*) restart_ymd
+       else
+          ! default option is no restart
+          restart_option = "none"
+          restart_n = 0
+          restart_ymd = 0
+       endif          
+       
        call AlarmInit(mclock, &
             alarm   = restart_alarm,         &
             option  = trim(restart_option),  &
@@ -2369,7 +2398,7 @@ contains
             line=__LINE__, &
             file=__FILE__)) &
             return  ! bail out
-
+       
        call ESMF_AlarmSet(restart_alarm, clock=mclock, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &

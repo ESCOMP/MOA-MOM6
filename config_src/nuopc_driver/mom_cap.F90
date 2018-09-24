@@ -1915,15 +1915,10 @@ contains
     integer                                :: isc,iec,jsc,jec,lbnd1,ubnd1,lbnd2,ubnd2
     integer                                :: i,j,i1,j1
     integer                                :: nc
-#ifdef CESMCOUPLED
     type(ESMF_Time)                        :: MyTime
     integer                                :: seconds, day, year, month, hour, minute
-    integer                                :: nu               ! i/o unit to write pointer file
-    character(ESMF_MAXSTR)                 :: cvalue
-    character(ESMF_MAXSTR)                 :: runid            ! Run ID
-    character(len=384)                     :: restartname      ! restart file name (no dir)
-    character(len=384)                     :: restart_pointer_file ! file name for restart pointer file
-#else
+    character(ESMF_MAXSTR)                 :: restartname, cvalue
+#ifndef CESMCOUPLED
     real(ESMF_KIND_R8), allocatable        :: ofld(:,:), ocz(:,:), ocm(:,:)
     real(ESMF_KIND_R8), allocatable        :: mmmf(:,:), mzmf(:,:)
     real(ESMF_KIND_R8), pointer            :: dataPtr_mask(:,:)
@@ -2119,93 +2114,11 @@ contains
     if(profile_memory) call ESMF_VMLogMemInfo("Leaving MOM update_ocean_model: ")
 
 #ifdef CESMCOUPLED
-
     call mom_export(ocean_public, ocean_grid, exportState, logunit, clock, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-
-    ! If restart alarm is ringing - write restart file
-    call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-
-      call ESMF_AlarmRingerOff( alarm, rc=rc )
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-
-      ! call into system specific method to get desired restart filename
-      restartname = ""
-      call ESMF_MethodExecute(gcomp, label="GetRestartFileToWrite", &
-           existflag=existflag, userRc=userRc, rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg="Error executing user method to get restart filename", &
-           line=__LINE__, &
-           file=__FILE__)) &
-           return  ! bail out
-      if (ESMF_LogFoundError(rcToCheck=userRc, msg="Error in method to get restart filename", &
-           line=__LINE__, &
-           file=__FILE__)) &
-           return  ! bail out
-      if (existflag) then
-         call ESMF_LogWrite("mom_cap: called user GetRestartFileToWrite method", ESMF_LOGMSG_INFO, rc=rc)
-         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
-         call NUOPC_CompAttributeGet(gcomp, name='RestartFileToWrite', &
-              isPresent=isPresent, isSet=isSet, value=cvalue, rc=rc)
-         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
-         if (isPresent .and. isSet) then
-            restartname = trim(cvalue)
-            call ESMF_LogWrite("mom_cap: User RestartFileToWrite: "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
-            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-                 line=__LINE__, &
-                 file=__FILE__)) &
-                 return  ! bail out
-         endif         
-      endif
-
-      if (len_trim(restartname) == 0) then
-         ! none provided, so use a default restart filename
-         call ESMF_ClockGetNextTime(clock, MyTime, rc=rc)
-         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
-         call ESMF_TimeGet (MyTime, yy=year, mm=month, dd=day, s=seconds, rc=rc )
-         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
-         write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I5.5)') "OCN", year, month, day, seconds
-         call ESMF_LogWrite("mom_cap: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
-         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-              line=__LINE__, &
-              file=__FILE__)) &
-              return  ! bail out
-      endif
-      
-      ! write restart file(s)
-      call ocean_model_restart(ocean_state, restartname=restartname)
-      
-      if (is_root_pe()) then
-        write(logunit,*) subname//' writing restart file ',trim(restartname)
-      end if
-    endif
 
     ! reset shr logging to my original values
     call shr_file_setLogUnit (output_unit)
@@ -2264,19 +2177,100 @@ contains
     deallocate(ocz, ocm)
 
 #endif
-
-    if (write_diagnostics) then
-      call NUOPC_Write(exportState, fileNamePrefix='field_ocn_export_', &
-        timeslice=export_slice, relaxedFlag=.true., rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-      export_slice = export_slice + 1
+    
+    ! If restart alarm is ringing - write restart file
+    call ESMF_ClockGetAlarm(clock, alarmname='alarm_restart', alarm=alarm, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+         line=__LINE__, &
+         file=__FILE__)) &
+         return  ! bail out
+    
+    if (ESMF_AlarmIsRinging(alarm, rc=rc)) then
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+       
+       call ESMF_AlarmRingerOff(alarm, rc=rc )
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+       
+       ! call into system specific method to get desired restart filename
+       restartname = ""
+       call ESMF_MethodExecute(gcomp, label="GetRestartFileToWrite", &
+            existflag=existflag, userRc=userRc, rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg="Error executing user method to get restart filename", &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+       if (ESMF_LogFoundError(rcToCheck=userRc, msg="Error in method to get restart filename", &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+       if (existflag) then
+          call ESMF_LogWrite("mom_cap: called user GetRestartFileToWrite method", ESMF_LOGMSG_INFO, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          call NUOPC_CompAttributeGet(gcomp, name='RestartFileToWrite', &
+               isPresent=isPresent, isSet=isSet, value=cvalue, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          if (isPresent .and. isSet) then
+             restartname = trim(cvalue)
+             call ESMF_LogWrite("mom_cap: User RestartFileToWrite: "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
+             if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+                  line=__LINE__, &
+                  file=__FILE__)) &
+                  return  ! bail out
+          endif
+       endif
+       
+       if (len_trim(restartname) == 0) then
+          ! none provided, so use a default restart filename
+          call ESMF_ClockGetNextTime(clock, MyTime, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          call ESMF_TimeGet (MyTime, yy=year, mm=month, dd=day, s=seconds, rc=rc )
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+          write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I5.5)') "OCN", year, month, day, seconds
+          call ESMF_LogWrite("mom_cap: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+               line=__LINE__, &
+               file=__FILE__)) &
+               return  ! bail out
+       endif
+       
+       ! write restart file(s)
+       call ocean_model_restart(ocean_state, restartname=restartname)
+       
+       if (is_root_pe()) then
+          write(logunit,*) subname//' writing restart file ',trim(restartname)
+       end if
     endif
-
+    
+    if (write_diagnostics) then
+       call NUOPC_Write(exportState, fileNamePrefix='field_ocn_export_', &
+            timeslice=export_slice, relaxedFlag=.true., rc=rc)
+       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__, &
+            file=__FILE__)) &
+            return  ! bail out
+       export_slice = export_slice + 1
+    endif
+    
     if(profile_memory) call ESMF_VMLogMemInfo("Leaving MOM Model_ADVANCE: ")
-
+    
   end subroutine ModelAdvance
 
   !===============================================================================

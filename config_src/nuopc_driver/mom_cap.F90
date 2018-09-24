@@ -2238,12 +2238,14 @@ contains
                line=__LINE__, &
                file=__FILE__)) &
                return  ! bail out
-          call ESMF_TimeGet (MyTime, yy=year, mm=month, dd=day, s=seconds, rc=rc )
+          call ESMF_TimeGet (MyTime, yy=year, mm=month, dd=day, &
+               h=hour, m=minute, s=seconds, rc=rc )
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
                file=__FILE__)) &
                return  ! bail out
-          write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I5.5)') "OCN", year, month, day, seconds
+          write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I2.2,"-",I2.2,"-",I2.2)') & 
+               "OCN", year, month, day, hour, minute, seconds
           call ESMF_LogWrite("mom_cap: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
@@ -2355,6 +2357,12 @@ contains
        !--------------------------------                                                                                 
        ! set restart alarm
        !--------------------------------                                                                                 
+
+       ! defaults
+       restart_option = "none"
+       restart_n = 0
+       restart_ymd = 0
+
        call NUOPC_CompAttributeGet(gcomp, name="restart_option", isPresent=isPresent, &
             isSet=isSet, value=restart_option, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -2362,23 +2370,24 @@ contains
             file=__FILE__)) &
             return  ! bail out
        if (isPresent .and. isSet) then
-          call NUOPC_CompAttributeGet(gcomp,  name="restart_n", value=cvalue, rc=rc)
+          call NUOPC_CompAttributeGet(gcomp,  name="restart_n", value=cvalue, &
+               isPresent=isPresent, isSet=isSet, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
                file=__FILE__)) &
                return  ! bail out
-          read(cvalue,*) restart_n
-          call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, rc=rc)
+          if (isPresent .and. isSet) then
+             read(cvalue,*) restart_n
+          endif
+          call NUOPC_CompAttributeGet(gcomp, name="restart_ymd", value=cvalue, &
+               isPresent=isPresent, isSet=isSet, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &
                file=__FILE__)) &
                return  ! bail out
-          read(cvalue,*) restart_ymd
-       else
-          ! default option is no restart
-          restart_option = "none"
-          restart_n = 0
-          restart_ymd = 0
+          if (isPresent .and. isSet) then
+             read(cvalue,*) restart_ymd
+          endif
        endif          
        
        call AlarmInit(mclock, &
@@ -2399,8 +2408,9 @@ contains
             file=__FILE__)) &
             return  ! bail out
        first_time = .false.
-       
-       call ESMF_LogWrite(subname//" Set restart alarm", ESMF_LOGMSG_INFO, rc=rc)
+      
+       call ESMF_LogWrite(subname//" Set restart option = "//restart_option, & 
+            ESMF_LOGMSG_INFO, rc=rc)
        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__, &
             file=__FILE__)) &
@@ -2475,15 +2485,14 @@ contains
     Time = esmf2fms_time(currTime)
 
 #ifdef CESMCOUPLED
-    call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.false.)
+    call ocean_model_end(ocean_public, ocean_State, Time, write_restart=.false.)
 #else
-    call ocean_model_end (ocean_public, ocean_State, Time, write_restart=.true.)
+    call ocean_model_end(ocean_public, ocean_State, Time, write_restart=.true.)
 #endif
-    call diag_manager_end(Time)
-    call field_manager_end
+    call field_manager_end()
 
-    call fms_io_exit
-    call fms_end
+    call fms_io_exit()
+    call fms_end()
 
     write(*,*) 'MOM: --- completed ---'
 

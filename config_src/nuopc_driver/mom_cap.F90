@@ -2245,7 +2245,7 @@ contains
                file=__FILE__)) &
                return  ! bail out
           write(restartname,'(A,".mom6.r.",I4.4,"-",I2.2,"-",I2.2,"-",I2.2,"-",I2.2,"-",I2.2)') & 
-               "OCN", year, month, day, hour, minute, seconds
+               "ocn", year, month, day, hour, minute, seconds
           call ESMF_LogWrite("mom_cap: Using default restart filename:  "//trim(restartname), ESMF_LOGMSG_INFO, rc=rc)
           if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
                line=__LINE__, &

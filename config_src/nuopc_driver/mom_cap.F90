@@ -2359,7 +2359,6 @@ contains
        !--------------------------------                                                                                 
 
        ! defaults
-       restart_option = "none"
        restart_n = 0
        restart_ymd = 0
 
@@ -2388,7 +2387,9 @@ contains
           if (isPresent .and. isSet) then
              read(cvalue,*) restart_ymd
           endif
-       endif          
+       else
+          restart_option = "none"
+       endif
        
        call AlarmInit(mclock, &
             alarm   = restart_alarm,         &

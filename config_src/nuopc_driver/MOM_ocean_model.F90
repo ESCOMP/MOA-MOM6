@@ -122,7 +122,8 @@ type, public ::  ocean_public_type
     frazil =>NULL(), &  !< Accumulated heating (in Joules/m^2) from frazil
                         !! formation in the ocean.
     melt_potential => NULL(), & !< Instantaneous heat used to melt sea ice (in J/m^2)
-    area => NULL()      !< cell area of the ocean surface, in m2.
+    area => NULL(), &   !< cell area of the ocean surface, in m2.
+    OBLD => NULL()      !< Ocean boundary layer depth, in m.
   type(coupler_2d_bc_type) :: fields    !< A structure that may contain named
                                         !! arrays of tracer-related surface fields.
   integer                  :: avg_kount !< A count of contributions to running
@@ -351,10 +352,10 @@ subroutine ocean_model_init(Ocean_sfc, OS, Time_init, Time_in, gas_fields_ocn, i
   OS%press_to_z = 1.0/(Rho0*G_Earth)
 
     call get_param(param_file, mdl, "HFREEZE", HFrz, &
-                 "If HFREEZE > 0, melt potential will be computed. The actual depth \n"//&           
-                 "over which melt potential is computed will be min(HFREEZE, OBLD), \n"//&             
-                 "where OBLD is the boundary layer depth. If HFREEZE <= 0 (default), \n"//&             
-                 "melt potential will not be computed.", units="m", default=-1.0, do_not_log=.true.)                        
+                 "If HFREEZE > 0, melt potential will be computed. The actual depth \n"//&
+                 "over which melt potential is computed will be min(HFREEZE, OBLD), \n"//&
+                 "where OBLD is the boundary layer depth. If HFREEZE <= 0 (default), \n"//&
+                 "melt potential will not be computed.", units="m", default=-1.0, do_not_log=.true.)
 
   if (HFrz .gt. 0.0) then
     use_melt_pot=.true.
@@ -655,8 +656,10 @@ subroutine update_ocean_model(Ice_ocean_boundary, OS, Ocean_sfc, &
   OS%nstep = OS%nstep + 1
 
   call enable_averaging(dt_coupling, OS%Time, OS%diag)
-  call mech_forcing_diags(OS%forces, OS%fluxes, dt_coupling, OS%grid, &
-                          OS%diag, OS%forcing_CSp%handles)
+  call mech_forcing_diags(OS%forces, dt_coupling, OS%grid, OS%diag, OS%forcing_CSp%handles)
+  !TODO: this came in for the merge and is not consistent with the MOA branch
+  !call mech_forcing_diags(OS%forces, OS%fluxes, dt_coupling, OS%grid, OS%diag, OS%forcing_CSp%handles)
+
   call disable_averaging(OS%diag)
 
   if (OS%fluxes%fluxes_used) then
@@ -816,6 +819,7 @@ subroutine initialize_ocean_public_type(input_domain, Ocean_sfc, diag, maskmap, 
              Ocean_sfc%v_surf (isc:iec,jsc:jec), &
              Ocean_sfc%sea_lev(isc:iec,jsc:jec), &
              Ocean_sfc%area   (isc:iec,jsc:jec), &
+             Ocean_sfc%OBLD   (isc:iec,jsc:jec), &
              Ocean_sfc%melt_potential(isc:iec,jsc:jec), &
              Ocean_sfc%frazil (isc:iec,jsc:jec))
 
@@ -826,6 +830,7 @@ subroutine initialize_ocean_public_type(input_domain, Ocean_sfc, diag, maskmap, 
   Ocean_sfc%sea_lev = 0.0  ! time averaged thickness of top model grid cell (m) plus patm/rho0/grav
   Ocean_sfc%frazil  = 0.0  ! time accumulated frazil (J/m^2) passed to ice model
   Ocean_sfc%melt_potential  = 0.0  ! time accumulated melt potential (J/m^2) passed to ice model
+  Ocean_sfc%OBLD    = 0.0  ! ocean boundary layer depth, in m
   Ocean_sfc%area    = 0.0
   Ocean_sfc%axes    = diag%axesT1%handles !diag axes to be used by coupler tracer flux diagnostics
 
@@ -913,6 +918,12 @@ subroutine convert_state_to_ocean_type(sfc_state, Ocean_sfc, G, patm, press_to_z
   if (allocated(sfc_state%melt_potential)) then
     do j=jsc_bnd,jec_bnd ; do i=isc_bnd,iec_bnd
       Ocean_sfc%melt_potential(i,j) = sfc_state%melt_potential(i+i0,j+j0)
+    enddo ; enddo
+  endif
+
+  if (allocated(sfc_state%Hml)) then
+    do j=jsc_bnd,jec_bnd ; do i=isc_bnd,iec_bnd
+      Ocean_sfc%OBLD(i,j) = sfc_state%Hml(i+i0,j+j0)
     enddo ; enddo
   endif
 
@@ -1165,4 +1176,3 @@ subroutine get_ocean_grid(OS, Gridp)
 end subroutine get_ocean_grid
 
 end module MOM_ocean_model
-
